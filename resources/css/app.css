@@ -1,0 +1,223 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+.text-black {
+    color: #000 !important;
+}
+
+/* Menambahkan outline merah untuk elemen dengan border putih */
+.outline-red-500 {
+    outline: 2px solid #c0392b !important;
+}
+
+a {
+    text-decoration: none;
+}
+
+a:hover {
+    color: white;
+    text-decoration: none;
+}
+
+/* Style for Main Content when Sidebar is open */
+.main-content {
+    transition: margin-left 0.3s ease-in-out;
+}
+
+@keyframes smoothFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+@keyframes smoothFadeOut {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fade-in 0.5s ease-out;
+}
+
+.modal-animate-in {
+    animation: smoothFadeIn 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+.modal-animate-out {
+    animation: smoothFadeOut 0.25s ease-in forwards;
+}
+
+/* Modal konfirmasi penghapusan */
+#deleteModal {
+    transition: opacity 0.3s ease-in-out;
+}
+
+#deleteModal.hidden {
+    display: none;
+    opacity: 0;
+}
+
+/* Tambahan gaya Material untuk chart */
+canvas {
+    background-color: transparent;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease-in-out;
+}
+
+canvas:hover {
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.chart-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #37474f;
+    font-family: "Roboto", sans-serif;
+}
+
+.sidebar-hidden {
+    transform: translateX(-100%);
+}
+
+.sidebar-visible {
+    transform: translateX(0);
+}
+
+.swiper-pagination-bullet {
+    background-color: rgba(255, 255, 255, 0.6) !important;
+    opacity: 1 !important;
+}
+
+.swiper-pagination-bullet-active {
+    background-color: #ffffff !important;
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+    color: #ffffff !important;
+    font-size: 1.5rem;
+}
+
+.swiper-slide img {
+    transition: opacity 0.3s ease-in-out;
+    background-color: #1e293b; /* fallback background dark grey */
+}
+
+@keyframes fadeInScale {
+    0% {
+        opacity: 0;
+        transform: scale(0.95) translateY(4px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+@keyframes fadeOutScale {
+    0% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.95) translateY(4px);
+    }
+}
+
+/* Saat hover - animasi masuk */
+.group:hover #form-overlay {
+    animation: fadeInScale 0.4s ease forwards;
+}
+
+/* Saat tidak hover - animasi keluar */
+.group:not(:hover) #form-overlay {
+    animation: fadeOutScale 0.4s ease forwards;
+}
+
+/* Tambahkan ini di file CSS kamu atau langsung di Blade */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.cursor-grabbing {
+    cursor: grabbing !important;
+    user-select: none;
+}
+
+#carouselContainer {
+    touch-action: pan-y;
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+}
+
+.pagination {
+    display: flex;
+    gap: 6px;
+    list-style: none;
+    padding: 0;
+}
+
+.page-item .page-link {
+    padding: 8px 14px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid #fca5a5;
+    color: #dc2626;
+    font-weight: 600;
+    transition: all .2s ease;
+}
+
+.page-item .page-link:hover {
+    background: #fee2e2;
+    transform: translateY(-1px);
+}
+
+.page-item.active .page-link {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 5px 15px rgba(220,38,38,.3);
+}
+
+.page-item.disabled .page-link {
+    color: #fca5a5;
+    pointer-events: none;
+    opacity: 0.6;
+}

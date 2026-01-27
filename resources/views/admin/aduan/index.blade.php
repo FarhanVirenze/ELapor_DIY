@@ -1,0 +1,609 @@
+@extends('admin.layouts.app')
+
+@section('title', 'Kelola Aduan')
+
+@section('content')
+    <div class="container mt-4=6">
+        <h2 class="mb-6 text-2xl font-semibold text-gray-800">
+            Kelola Aduan
+        </h2>
+
+        {{-- Alert Success (Fixed Top Right - Red Style) --}}
+        @if (session('success'))
+            <div id="alert-success" class="fixed top-4 right-4 z-50 animate-fade-in-down">
+                <div class="bg-red-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 border-l-4 border-red-800">
+                    <div class="bg-white/20 p-2 rounded-full">
+                        <i class="fas fa-check-circle text-xl"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg">Berhasil!</h4>
+                        <p class="text-sm opacity-90">{{ session('success') }}</p>
+                    </div>
+                    <button onclick="document.getElementById('alert-success').style.display='none'" class="ml-4 text-white/70 hover:text-white transition">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <script>
+                // Auto hide after 3 seconds
+                setTimeout(function() {
+                    var alert = document.getElementById('alert-success');
+                    if (alert) {
+                        alert.style.transition = 'opacity 0.5s ease';
+                        alert.style.opacity = '0';
+                        setTimeout(function() { alert.remove(); }, 500);
+                    }
+                }, 3000);
+            </script>
+        @endif
+
+        {{-- Filter Section --}}
+        <div class="mb-6 bg-white p-4 md:p-5 rounded-2xl shadow-lg border border-gray-200 animate-fade-in">
+            <form method="GET" action="{{ route('admin.kelola-aduan.index') }}"
+                class="flex flex-wrap gap-4 md:gap-6 items-end justify-start">
+
+                <span class="text-base md:text-lg font-semibold text-gray-800 flex-shrink-0 w-full md:w-auto">
+                    Filter Data:
+                </span>
+
+                {{-- Filter Tahun --}}
+                <div class="flex-1 min-w-[130px] md:min-w-[160px]">
+                    <label for="tahun" class="block text-sm font-semibold text-gray-700 mb-1">Tahun:</label>
+                    <select name="tahun" id="tahun" onchange="this.form.submit()"
+                        class="w-full border border-gray-300 px-3 py-2 text-sm rounded-lg shadow-sm 
+                        focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-150">
+                        <option value="">-- Semua Tahun --</option>
+                        @foreach ($tahuns as $t)
+                            <option value="{{ $t }}" {{ request('tahun') == $t ? 'selected' : '' }}>
+                                {{ $t }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Filter Kategori --}}
+                <div class="flex-1 min-w-[180px] md:min-w-[200px]">
+                    <label for="kategori_id" class="block text-sm font-semibold text-gray-700 mb-1">Kategori:</label>
+                    <select name="kategori_id" id="kategori_id" onchange="this.form.submit()"
+                        class="w-full border border-gray-300 px-3 py-2 text-sm rounded-lg shadow-sm 
+                        focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-150">
+                        <option value="">-- Semua Kategori --</option>
+                        @foreach ($kategoris as $kategori)
+                            <option value="{{ $kategori->id }}"
+                                {{ request('kategori_id') == $kategori->id ? 'selected' : '' }}>
+                                {{ $kategori->nama }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Filter Wilayah --}}
+                <div class="flex-1 min-w-[180px] md:min-w-[200px]">
+                    <label for="wilayah_id" class="block text-sm font-semibold text-gray-700 mb-1">Wilayah:</label>
+                    <select name="wilayah_id" id="wilayah_id" onchange="this.form.submit()"
+                        class="w-full border border-gray-300 px-3 py-2 text-sm rounded-lg shadow-sm 
+                        focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-150">
+                        <option value="">-- Semua Wilayah --</option>
+                        @foreach ($wilayahs as $wilayah)
+                            <option value="{{ $wilayah->id }}"
+                                {{ request('wilayah_id') == $wilayah->id ? 'selected' : '' }}>
+                                {{ $wilayah->nama }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Reset Filter --}}
+                @if (request()->filled('tahun') ||
+                        request()->filled('kategori_id') ||
+                        request()->filled('wilayah_id') ||
+                        request()->filled('search') ||
+                        request()->filled('status'))
+                    <a href="{{ route('admin.kelola-aduan.index') }}"
+                        class="px-4 py-2 text-sm bg-gradient-to-r from-gray-600 to-gray-700 text-white 
+                        hover:from-gray-700 hover:to-gray-800 rounded-lg font-medium shadow-md 
+                        transition-all duration-200 flex items-center gap-2 flex-shrink-0">
+                        <i class="fas fa-undo"></i> <span>Reset Filter</span>
+                    </a>
+                @endif
+            </form>
+        </div>
+
+        {{-- Summary Cards --}}
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-7 gap-4 mb-6">
+            @php
+                $cards = [
+                    [
+                        'title' => 'Belum Dicek',
+                        'count' => $summary['diajukan'] ?? 0,
+                        'color' => 'red',
+                        'icon' => 'fa-file-alt',
+                    ],
+                    ['title' => 'Disetujui', 'count' => $summary['dibaca'] ?? 0, 'color' => 'blue', 'icon' => 'fa-eye'],
+                    [
+                        'title' => 'Revisi',
+                        'count' => $summary['revisi'] ?? 0,
+                        'color' => 'orange',
+                        'icon' => 'fa-sync-alt',
+                    ],
+                    [
+                        'title' => 'Direspon',
+                        'count' => $summary['direspon'] ?? 0,
+                        'color' => 'yellow',
+                        'icon' => 'fa-reply',
+                    ],
+                    [
+                        'title' => 'Selesai',
+                        'count' => $summary['selesai'] ?? 0,
+                        'color' => 'green',
+                        'icon' => 'fa-check-circle',
+                    ],
+                    [
+                        'title' => 'Arsip',
+                        'count' => $summary['arsip'] ?? 0,
+                        'color' => 'purple',
+                        'icon' => 'fa-archive',
+                    ],
+                    [
+                        'title' => 'Aduan Terlambat',
+                        'count' => $summary['terlambat'] ?? 0,
+                        'color' => 'red-dark',
+                        'icon' => 'fa-exclamation-triangle',
+                    ],
+                ];
+            @endphp
+
+            @foreach ($cards as $card)
+                @php
+                    $colorClasses = [
+                        'red' => 'border-red-500 text-red-700',
+                        'blue' => 'border-blue-500 text-blue-700',
+                        'orange' => 'border-orange-500 text-orange-700',
+                        'yellow' => 'border-yellow-500 text-yellow-700',
+                        'green' => 'border-green-500 text-green-700',
+                        'purple' => 'border-purple-500 text-purple-700',
+                        'red-dark' => 'border-red-800 text-red-900 bg-red-50',
+                    ];
+                @endphp
+
+                <div
+                    class="bg-white {{ $colorClasses[$card['color']] ?? 'border-gray-500 text-gray-700' }} 
+                    border-b-4 p-4 rounded-2xl shadow-lg 
+                    flex flex-col items-start hover:shadow-2xl hover:scale-[1.02] transition-all duration-300">
+                    <div class="flex items-center justify-between w-full">
+                        <h3 class="text-sm font-semibold text-gray-500">{{ $card['title'] }}</h3>
+                        <div class="{{ $colorClasses[$card['color']] ?? 'text-gray-700' }} text-2xl">
+                            <i class="fas {{ $card['icon'] }}"></i>
+                        </div>
+                    </div>
+                    <p class="text-4xl font-semibold mt-2">
+                        {{ $card['count'] }}
+                    </p>
+                </div>
+            @endforeach
+        </div>
+
+        {{-- Table Header with Search, Status Tabs, and Total --}}
+        <div class="bg-white shadow-xl rounded-2xl p-4 md:p-6">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                {{-- Search --}}
+                <div class="w-full md:w-1/3">
+                    <form method="GET" action="{{ route('admin.kelola-aduan.index') }}" class="relative">
+                        @foreach (request()->except(['search', 'page']) as $key => $value)
+                            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                        @endforeach
+                        <input type="text" name="search" placeholder="Cari Judul, Pelapor, Kategori, Wilayah..."
+                            value="{{ request('search') }}"
+                            class="w-full border border-gray-300 px-4 py-2 text-sm rounded-lg shadow-inner focus:ring-2 focus:ring-red-500 focus:border-red-500 transition duration-150">
+                        <button type="submit"
+                            class="absolute right-0 top-0 mt-2.5 mr-3 text-gray-400 hover:text-red-600 transition duration-150">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                </div>
+
+                {{-- Tabs Status --}}
+                <nav class="flex items-center space-x-2 p-1.5 bg-gray-100/80 backdrop-blur-sm rounded-xl shadow-inner flex-1 w-full md:w-auto overflow-x-auto scrollbar-thin scrollbar-thumb-red-400 scrollbar-track-gray-100">
+                    @php
+                        $statuses = [
+                            '' => 'Semua',
+                            'Diajukan' => 'Diajukan',
+                            'Dibaca' => 'Dibaca',
+                            'Revisi' => 'Revisi',
+                            'Direspon' => 'Direspon',
+                            'Selesai' => 'Selesai',
+                            'Arsip' => 'Arsip',
+                            'Terlambat' => 'Terlambat',
+                        ];
+                        $currentStatus = request('status', '');
+                    @endphp
+
+                    @foreach ($statuses as $value => $label)
+                        @php
+                            $isActive = $currentStatus == $value;
+                            $url = route(
+                                'admin.kelola-aduan.index',
+                                array_merge(request()->except('status', 'page'), ['status' => $value]),
+                            );
+                        @endphp
+                        <a href="{{ $url }}"
+                            class="px-3 py-1.5 text-[11px] md:text-sm font-bold rounded-lg whitespace-nowrap transition-all duration-300 ease-out flex-shrink-0
+                            {{ $isActive
+                                ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg scale-[1.05]'
+                                : 'bg-white text-gray-600 hover:bg-red-50 hover:text-red-600 hover:shadow-sm' }}">
+                            {{ $label }}
+                        </a>
+                    @endforeach
+                </nav>
+
+                {{-- Total Aduan --}}
+                <div
+                    class="flex items-center gap-4 bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white rounded-xl px-4 py-2 shadow-lg w-full md:w-auto justify-center md:justify-end transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl">
+                    <div class="flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-inner">
+                        <i class="fas fa-file text-2xl text-red-600"></i>
+                    </div>
+                    <div class="text-left">
+                        <p class="text-sm opacity-90 font-semibold leading-tight tracking-wide">
+                            Total Aduan
+                        </p>
+                        <h4 class="text-xl font-semibold tracking-wide drop-shadow-sm">
+                            {{ $totalReports ?? 0 }}
+                        </h4>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Table --}}
+            @if ($reports->isEmpty())
+                <div class="text-center py-10 rounded-lg bg-red-50 text-red-600 border border-red-200">
+                    <i class="fas fa-info-circle text-xl mb-2"></i>
+                    <p class="font-semibold text-lg">Tidak ada data aduan yang tersedia.</p>
+                    <p class="text-sm mt-1">Coba sesuaikan filter atau kata kunci pencarian Anda.</p>
+                </div>
+            @else
+                <div class="overflow-x-auto rounded-xl border border-gray-200 shadow-md">
+                    <table class="min-w-full text-sm text-gray-800">
+                        <thead class="bg-red-700 text-white text-xs uppercase">
+                            <tr>
+                                <th class="p-3 text-center font-bold">No</th>
+                                <th class="p-3 text-left font-bold">Judul</th>
+                                <th class="p-3 text-left font-bold">Pelapor</th>
+                                <th class="p-3 text-left font-bold">Kategori</th>
+                                <th class="p-3 text-left font-bold">Wilayah</th>
+                                <th class="p-3 text-center font-bold">Status</th>
+                                <th class="p-3 text-center font-bold">Urgensi</th>
+                                <th class="p-3 text-center font-bold">SLA</th>
+                                <th class="p-3 text-center font-bold">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-100">
+                            @foreach ($reports as $index => $report)
+                                <tr class="hover:bg-red-50 transition-all duration-200">
+                                    <td class="p-3 text-center">
+                                        {{ ($reports->currentPage() - 1) * $reports->perPage() + $loop->iteration }}</td>
+                                    <td class="p-3 font-semibold text-gray-900 truncate" title="{{ $report->judul }}">
+                                        {{ \Illuminate\Support\Str::limit($report->judul, 68, '...') }}
+                                    </td>
+                                    <td class="p-3">{{ $report->user->name ?? 'Anonim' }}</td>
+                                    <td class="p-3">{{ $report->kategori->nama ?? '-' }}</td>
+                                    <td class="p-3">{{ $report->wilayah->nama ?? '-' }}</td>
+
+                                     <td class="p-3 text-center">
+                                        @php
+                                            $statusClass =
+                                                [
+                                                    'Diajukan' => 'bg-red-500 text-white',
+                                                    'Dibaca' => 'bg-blue-500 text-white',
+                                                    'Revisi' => 'bg-orange-500 text-white',
+                                                    'Direspon' => 'bg-yellow-500 text-white',
+                                                    'Selesai' => 'bg-green-500 text-white',
+                                                    'Arsip' => 'bg-purple-500 text-white',
+                                                ][$report->status] ?? 'bg-gray-200 text-gray-800';
+                                        @endphp
+                                        <span
+                                            class="inline-block rounded-full px-3 py-1 text-xs font-bold shadow {{ $statusClass }}">
+                                            {{ $report->status }}
+                                        </span>
+                                    </td>
+
+                                    {{-- AI Priority --}}
+                                    <td class="p-3 text-center">
+                                        @php
+                                            $priority = $report->priority ?: 'Low';
+                                            $priorityClass =
+                                                [
+                                                    'Emergency' => 'bg-red-700 text-white animate-pulse',
+                                                    'High' => 'bg-red-100 text-red-700 border border-red-300',
+                                                    'Medium' =>
+                                                        'bg-yellow-100 text-yellow-700 border border-yellow-300',
+                                                    'Low' => 'bg-green-100 text-green-700 border border-green-300',
+                                                ][$priority] ?? 'bg-green-100 text-green-700 border border-green-300';
+                                            $sentiment = $report->sentiment ?: 'Neutral';
+                                            $sentimentIcon =
+                                                [
+                                                    'Positive' => 'fa-smile text-green-500',
+                                                    'Neutral' => 'fa-meh text-gray-400',
+                                                    'Negative' => 'fa-frown text-red-500',
+                                                ][$sentiment] ?? 'fa-meh text-gray-400';
+                                        @endphp
+                                        <div class="flex flex-col items-center gap-1">
+                                            <span
+                                                class="inline-block rounded-lg px-2 py-0.5 text-[9px] font-black uppercase tracking-wider {{ $priorityClass }}">
+                                                {{ $priority }}
+                                            </span>
+                                            <i class="fas {{ $sentimentIcon }} text-xs"
+                                                title="Sentimen: {{ $sentiment }}"></i>
+                                        </div>
+                                    </td>
+                                    
+                                    {{-- SLA Monitoring --}}
+                                    <td class="p-3 text-center">
+                                        @php
+                                            $slaStatus = $report->sla_status;
+                                            $slaBadge = match($slaStatus) {
+                                                'Terlambat' => 'bg-red-600 text-white animate-pulse',
+                                                'Warning' => 'bg-yellow-500 text-white',
+                                                default => 'bg-green-100 text-green-700'
+                                            };
+                                        @endphp
+                                        <span class="inline-block rounded-lg px-2 py-0.5 text-[9px] font-black uppercase tracking-wider {{ $slaBadge }}">
+                                            {{ $slaStatus }}
+                                        </span>
+                                    </td>
+                                   
+                                    <td class="p-3 text-center">
+                                        <div class="flex justify-center gap-1">
+                                            <a href="{{ route('admin.reports.show', ['id' => $report->id]) }}"
+                                                class="px-3 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow">
+                                                <i class="fas fa-eye mr-1"></i> Lihat
+                                            </a>
+
+                                            <button type="button" data-toggle="modal" data-target="#editAduanModal"
+                                                data-id="{{ $report->id }}" data-status="{{ $report->status }}"
+                                                data-komentar="{{ $report->komentar_revisi }}"
+                                                class="px-3 py-1 text-xs bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg shadow">
+                                                <i class="fas fa-edit mr-1"></i> Edit
+                                            </button>
+
+                                            <button type="button" data-toggle="modal" data-target="#deleteAduanModal"
+                                                data-id="{{ $report->id }}" data-judul="{{ $report->judul }}"
+                                                class="px-3 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded-lg shadow">
+                                                <i class="fas fa-trash mr-1"></i> Hapus
+                                            </button>
+
+                                            <button type="button" data-toggle="modal"
+                                                data-target="#disposisiModal-{{ $report->id }}"
+                                                class="px-3 py-1 text-xs bg-green-500 hover:bg-green-600 text-white rounded-lg shadow">
+                                                <i class="fas fa-share mr-1"></i> Disposisi
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                {{-- Modal Disposisi --}}
+                                <div class="modal fade" id="disposisiModal-{{ $report->id }}" tabindex="-1"
+                                    role="dialog">
+                                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-md">
+                                        <div class="modal-content">
+                                            <form action="{{ route('admin.reports.update', $report->id) }}"
+                                                method="POST">
+                                                @csrf
+                                                @method('PUT')
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Disposisi Aduan</h5>
+                                                    <button type="button" class="close" data-dismiss="modal">
+                                                        <span>&times;</span>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="form-group mb-3">
+                                                        <label>Pilih Admin</label>
+                                                        <select name="admin_id" id="adminSelect-{{ $report->id }}" class="form-control">
+                                                            <option value="">-- Pilih Admin --</option>
+                                                            @foreach (\App\Models\User::where('role', 'admin')->get() as $admin)
+                                                                <option value="{{ $admin->id_user }}"
+                                                                    {{ $report->admin_id == $admin->id_user ? 'selected' : '' }}>
+                                                                    {{ $admin->name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+
+                                                    <div class="form-group">
+                                                        <label>Pilih Kategori</label>
+                                                        <select name="kategori_id" id="kategoriSelect-{{ $report->id }}" class="form-control">
+                                                            <option value="">-- Pilih Kategori --</option>
+                                                            @foreach (\App\Models\KategoriUmum::all() as $kategori)
+                                                                <option value="{{ $kategori->id }}"
+                                                                    data-admin="{{ $kategori->admin_id }}"
+                                                                    {{ $report->kategori_id == $kategori->id ? 'selected' : '' }}>
+                                                                    {{ $kategori->nama }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary"
+                                                        data-dismiss="modal">Batal</button>
+                                                    <button type="submit" class="btn btn-primary">Simpan</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- Pagination --}}
+                <div class="mt-6 flex flex-col md:flex-row justify-between items-center text-sm">
+                    <p class="text-gray-600">
+                        Menampilkan <span class="font-bold">{{ $reports->firstItem() }}</span> -
+                        <span class="font-bold">{{ $reports->lastItem() }}</span> dari
+                        <span class="font-bold">{{ $reports->total() }}</span> aduan.
+                    </p>
+                    <div>{{ $reports->appends(request()->query())->links('pagination::tailwind') }}</div>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    {{-- Modal Edit --}}
+    <div class="modal fade" id="editAduanModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-md">
+            <div class="modal-content">
+                <form method="POST" id="editAduanForm">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-body">
+                        <label for="editStatus">Status</label>
+                        <select name="status" id="editStatus" class="form-control">
+                            <option value="Diajukan">Belum Dicek</option>
+                            <option value="Dibaca">Disetujui</option>
+                            <option value="Direspon">Direspon</option>
+                            <option value="Selesai">Selesai</option>
+                            <option value="Revisi">Revisi</option>
+                            <option value="Arsip">Arsip</option>
+                        </select>
+                    </div>
+
+                    <div class="modal-body" id="revisiContainer" style="display: none;">
+                        <label for="komentar_revisi">Catatan Revisi</label>
+                        <textarea name="komentar_revisi" id="komentar_revisi" class="form-control" rows="3"
+                            placeholder="Masukkan alasan revisi..."></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn btn-primary">Update</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal Hapus --}}
+    <div class="modal fade" id="deleteAduanModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-md">
+            <div class="modal-content">
+                <form method="POST" id="deleteAduanForm">
+                    @csrf
+                    @method('DELETE')
+                    <div class="modal-header">
+                        <h5 class="modal-title">Konfirmasi Hapus Aduan</h5>
+                        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Apakah Anda yakin ingin menghapus aduan <strong id="aduanJudul"></strong>?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-danger">Hapus</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @push('scripts')
+        <script>
+            // ========================
+            // Edit
+            // ========================
+            $('#editAduanModal').on('show.bs.modal', function(event) {
+                var button = $(event.relatedTarget);
+                var id = button.data('id');
+                var status = button.data('status');
+                var komentar = button.data('komentar');
+
+                var modal = $(this);
+                var statusSelect = modal.find('#editStatus');
+                var revisiContainer = modal.find('#revisiContainer');
+                var komentarInput = modal.find('#komentar_revisi');
+
+                statusSelect.val(status);
+                komentarInput.val(komentar);
+
+                // Fungsi toggle
+                function toggleRevisi() {
+                    if (statusSelect.val() === 'Revisi') {
+                        revisiContainer.show();
+                        komentarInput.prop('required', true);
+                    } else {
+                        revisiContainer.hide();
+                        komentarInput.prop('required', false);
+                    }
+                }
+
+                toggleRevisi();
+                statusSelect.on('change', toggleRevisi);
+
+                modal.find('#editAduanForm').attr('action', '/admin/kelola-aduan/' + id);
+            });
+
+            // ========================
+            // Delete
+            // ========================
+            $('#deleteAduanModal').on('show.bs.modal', function(event) {
+                var button = $(event.relatedTarget);
+                var id = button.data('id');
+                var judul = button.data('judul');
+                var modal = $(this);
+                modal.find('#aduanJudul').text(judul);
+                modal.find('#deleteAduanForm').attr('action', '/admin/kelola-aduan/' + id);
+            });
+
+            // ========================
+            // Auto-hide success
+            // ========================
+            // ========================
+            // Auto-hide success
+            // ========================
+
+
+            // ========================
+            // Filter kategori sesuai admin (per report)
+            // ========================
+            @foreach ($reports as $report)
+                $('#adminSelect-{{ $report->id }}').on('change', function() {
+                    var selectedAdmin = $(this).val();
+                    var kategoriSelect = $('#kategoriSelect-{{ $report->id }}');
+
+                    // sembunyikan semua kategori dulu
+                    kategoriSelect.find('option').hide();
+                    kategoriSelect.find('option[value=""]').show(); // opsi default
+
+                    if (selectedAdmin) {
+                        // tampilkan kategori yang sesuai admin
+                        kategoriSelect.find('option').each(function() {
+                            var adminId = $(this).data('admin');
+                            if (adminId == selectedAdmin) {
+                                $(this).show();
+                            }
+                        });
+
+                        // otomatis pilih kategori pertama yang sesuai admin
+                        var firstVisibleOption = kategoriSelect.find('option:visible:not([value=""])').first().val();
+                        if (firstVisibleOption) {
+                            kategoriSelect.val(firstVisibleOption);
+                        } else {
+                            kategoriSelect.val('');
+                        }
+                    } else {
+                        // tampilkan semua jika tidak ada admin terpilih
+                        kategoriSelect.find('option').show();
+                    }
+                });
+
+                // trigger pada saat modal dibuka
+                $('#disposisiModal-{{ $report->id }}').on('show.bs.modal', function() {
+                    $('#adminSelect-{{ $report->id }}').trigger('change');
+                });
+            @endforeach
+        </script>
+    @endpush
+
+
+@endsection

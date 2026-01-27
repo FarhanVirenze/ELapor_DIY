@@ -1,0 +1,1873 @@
+@extends('portal.layouts.app')
+
+@section('include-css')
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+@endsection
+
+@section('content')
+    <div class="w-full max-w-full 
+                                                md:max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-screen-2xl 
+                                                mx-auto px-4 sm:px-6 lg:px-8 py-6 mt-20 mb-5">
+
+        @if (session('success'))
+            <div id="successMessage"
+                class="fixed top-5 right-5 z-50 flex items-center justify-between gap-4 
+                                                                                       w-[420px] max-w-[90vw] px-6 py-4 rounded-2xl shadow-2xl border border-red-400 
+                                                                                       bg-gradient-to-r from-red-600 to-red-500/90 backdrop-blur-md text-white 
+                                                                                       transition-all duration-500 opacity-100 animate-fade-in">
+
+                <!-- Ikon -->
+                <div id="success-icon-wrapper" class="flex-shrink-0">
+                    <!-- Spinner -->
+                    <svg id="success-spinner" class="w-6 h-6 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="white" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+
+                    <!-- Check -->
+                    <svg id="success-check" class="w-6 h-6 text-white hidden scale-75" fill="none" viewBox="0 0 24 24">
+                        <path stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                            d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+
+                <!-- Pesan -->
+                <span class="flex-1 font-medium tracking-wide">{{ session('success') }}</span>
+
+                <!-- Tombol Close -->
+                <button onclick="document.getElementById('successMessage').remove()"
+                    class="text-white/70 hover:text-white font-bold transition-colors">
+                    ✕
+                </button>
+
+                <!-- Progress Bar -->
+                <div
+                    class="absolute bottom-0 left-0 h-[3px] bg-white/70 w-full origin-left scale-x-0 animate-progress rounded-b-xl">
+                </div>
+            </div>
+
+            <style>
+                @keyframes fade-in {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-12px) scale(0.98);
+                    }
+
+                    to {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+
+                @keyframes progress {
+                    from {
+                        transform: scaleX(0);
+                    }
+
+                    to {
+                        transform: scaleX(1);
+                    }
+                }
+
+                @keyframes pop {
+                    from {
+                        transform: scale(0.6);
+                        opacity: 0;
+                    }
+
+                    to {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                }
+
+                .animate-fade-in {
+                    animation: fade-in 0.4s ease-out;
+                }
+
+                .animate-progress {
+                    animation: progress 3s linear forwards;
+                }
+
+                .animate-pop {
+                    animation: pop 0.3s ease-out;
+                }
+            </style>
+
+            <script>
+                setTimeout(() => {
+                    document.getElementById('success-spinner').classList.add('hidden');
+                    const check = document.getElementById('success-check');
+                    check.classList.remove('hidden');
+                    check.classList.add('animate-pop');
+                }, 800);
+                setTimeout(() => {
+                    const alert = document.getElementById('successMessage');
+                    if (alert) {
+                        alert.classList.add('opacity-0', 'translate-y-2');
+                        setTimeout(() => alert.remove(), 500);
+                    }
+                }, 3500);
+            </script>
+        @endif
+
+        {{-- Tombol Kembali --}}
+        <div class="sticky top-0 bg-white z-10 py-2">
+            <a href="{{ route('daftar-aduan') }}"
+                class="flex items-center text-red-500 hover:text-red-700 transition-colors duration-200 text-sm">
+                <i class="fas fa-arrow-left mr-1"></i> Kembali
+            </a>
+        </div>
+
+        {{-- Grid Utama: Timeline Kiri & Konten Kanan --}}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-1">
+
+            {{-- Timeline Aduan (KIRI - Desktop) --}}
+            <div class="md:col-span-1 hidden md:block">
+                <div x-data="{ openTimeline: window.innerWidth >= 768 }"
+                    x-init="window.addEventListener('resize', () => { openTimeline = window.innerWidth >= 768; });">
+                    <h2 class="flex items-center text-lg justify-between gap-2 px-6 py-2 rounded-full 
+                                                               bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-700 hover:to-rose-600 text-white font-semibold 
+                                                               shadow-lg hover:shadow-xl transition mb-5 mt-5 cursor-pointer md:cursor-default"
+                        @click="if (window.innerWidth < 768) openTimeline = !openTimeline">
+                        <span>Timeline Aduan</span>
+                        <span class="md:hidden">
+                            <i :class="openTimeline ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+                        </span>
+                    </h2>
+
+                    <div class="relative border-l-4 border-red-400 ml-3" x-show="openTimeline" x-transition.duration.300ms>
+                        @foreach($timeline as $item)
+                            <div class="mb-4 ml-6">
+                                {{-- Bulatan status --}}
+                                <div
+                                    class="absolute -left-5 flex items-center justify-center w-8 h-8 rounded-full
+                                                                                                        @if($item['type'] === 'created') bg-red-500 text-white
+                                                                                                        @elseif($item['type'] === 'assigned') bg-violet-500 text-white
+                                                                                                        @elseif($item['type'] === 'reassigned') bg-amber-500 text-white
+                                                                                                        @elseif($item['type'] === 'read') bg-blue-500 text-white
+                                                                                                        @elseif($item['type'] === 'followup') bg-sky-500 text-white
+                                                                                                        @elseif($item['type'] === 'revision') bg-orange-500 text-white
+                                                                                                        @elseif($item['type'] === 'archived') bg-purple-500 text-white
+                                                                                                        @elseif($item['type'] === 'comment') bg-yellow-500 text-white
+                                                                                                        @elseif($item['type'] === 'done') bg-green-500 text-white
+                                                                                                        @else bg-gray-400 text-white @endif">
+                                    @if($item['type'] === 'created')
+                                        <i class="fas fa-edit"></i>
+                                    @elseif($item['type'] === 'assigned')
+                                        <i class="fas fa-share-square"></i>
+                                    @elseif($item['type'] === 'reassigned')
+                                        <i class="fas fa-random"></i>
+                                    @elseif($item['type'] === 'read')
+                                        <i class="fas fa-eye"></i>
+                                    @elseif($item['type'] === 'followup')
+                                        <i class="fas fa-tasks"></i>
+                                    @elseif($item['type'] === 'comment')
+                                        <i class="fas fa-comments"></i>
+                                        @elseif($item['type'] === 'revision')
+                                        <i class="fas fa-rotate-left"></i>
+                                        @elseif($item['type'] === 'archived')
+                                        <i class="fas fa-box-archive"></i>
+                                    @elseif($item['type'] === 'done')
+                                        <i class="fas fa-check-circle"></i>
+                                    @else
+                                        <i class="fas fa-info-circle"></i>
+                                    @endif
+                                </div>
+
+                                {{-- Konten timeline --}}
+                                <div class="p-4 ml-1 bg-white rounded-xl shadow-md">
+                                    <span class="text-sm text-gray-600">
+                                        {{ \Carbon\Carbon::parse($item['time'])->format('d M Y H:i') }}
+                                    </span>
+                                    <h3 class="text-base font-semibold mt-1">{{ $item['title'] }}</h3>
+                                    @if(!empty($item['description']))
+                                        <p class="text-gray-600 mt-1">{{ $item['description'] }}</p>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+
+            {{-- Konten KANAN --}}
+            <div class="md:col-span-2">
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mt-4 p-4 sm:p-6 md:p-8">
+
+                    {{-- Timeline Aduan (hanya muncul di mobile) --}}
+                    <div x-data="{ openTimeline: false }" class="md:hidden">
+                        <h2 class="flex items-center text-lg justify-between gap-2 px-6 py-2 rounded-full 
+                                           bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-700 hover:to-rose-600 text-white font-semibold 
+                                           shadow-lg hover:shadow-xl transition mb-5 mt-5 cursor-pointer"
+                            @click="openTimeline = !openTimeline">
+                            <span>Timeline Aduan</span>
+                            <span><i :class="openTimeline ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i></span>
+                        </h2>
+
+                        <div class="relative border-l-4 border-red-400 ml-3" x-show="openTimeline"
+                            x-transition.duration.300ms x-cloak>
+                            @foreach($timeline as $item)
+                                <div class="mb-4 ml-6">
+                                    <div class="absolute -left-5 flex items-center justify-center w-8 h-8 rounded-full
+                                                                                        @if($item['type'] === 'created') bg-red-500 text-white
+                                                                                        @elseif($item['type'] === 'assigned') bg-orange-500 text-white
+                                                                                        @elseif($item['type'] === 'reassigned') bg-amber-500 text-white
+                                                                                        @elseif($item['type'] === 'read') bg-blue-500 text-white
+                                                                                        @elseif($item['type'] === 'followup') bg-purple-500 text-white
+                                                                                        @elseif($item['type'] === 'comment') bg-yellow-500 text-white
+                                                                                        @elseif($item['type'] === 'done') bg-green-500 text-white
+                                                                                        @else bg-gray-400 text-white @endif">
+                                        @if($item['type'] === 'created')
+                                            <i class="fas fa-edit"></i>
+                                        @elseif($item['type'] === 'assigned')
+                                            <i class="fas fa-share-square"></i>
+                                        @elseif($item['type'] === 'reassigned')
+                                            <i class="fas fa-random"></i>
+                                        @elseif($item['type'] === 'read')
+                                            <i class="fas fa-eye"></i>
+                                        @elseif($item['type'] === 'followup')
+                                            <i class="fas fa-tasks"></i>
+                                        @elseif($item['type'] === 'comment')
+                                            <i class="fas fa-comments"></i>
+                                        @elseif($item['type'] === 'done')
+                                            <i class="fas fa-check-circle"></i>
+                                        @else
+                                            <i class="fas fa-info-circle"></i>
+                                        @endif
+                                    </div>
+
+                                    <div class="p-4 ml-1 bg-white rounded-xl shadow-md">
+                                        <span class="text-sm text-gray-600">
+                                            {{ \Carbon\Carbon::parse($item['time'])->format('d M Y H:i') }}
+                                        </span>
+                                        <h3 class="text-base font-semibold mt-1">{{ $item['title'] }}</h3>
+                                        @if(!empty($item['description']))
+                                            <p class="text-gray-600 mt-1">{{ $item['description'] }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- ====== TABS (dipindah ke atas, default: Detail Aduan) ====== --}}
+                    @php
+                        $badges = [
+                            'tindak' => $followUps->count(),
+                            'komentar' => $comments->count(),
+                            'lampiran' => is_array($report->file) ? count($report->file) : 0,
+                        ];
+                        $tabs = [
+                            'detail' => ['label' => 'Detail Aduan', 'icon' => 'fa-info-circle'],
+                            'tindak' => ['label' => 'Tindak Lanjut', 'icon' => 'fa-clipboard-check'],
+                            'komentar' => ['label' => 'Komentar', 'icon' => 'fa-comments'],
+                            'lampiran' => ['label' => 'Lampiran', 'icon' => 'fa-paperclip'],
+                            'lokasi' => ['label' => 'Lokasi', 'icon' => 'fa-map-marker-alt'],
+                        ];
+                    @endphp
+
+                    <div
+                        class="border-b px-1 pt-1 md:pt-5 flex justify-between md:justify-start space-x-2 md:space-x-6 text-gray-600 overflow-x-auto no-scrollbar">
+                        @foreach ($tabs as $key => $tab)
+                            <button onclick="showTab('{{ $key }}')" id="tab-{{ $key }}" class="tab-button flex flex-col md:flex-row items-center justify-center 
+                                                               min-w-[60px] md:min-w-0 px-2 md:px-3 py-1.5 md:py-2 
+                                                               border-b-2 {{ $key === 'detail' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600' }} 
+                                                               hover:text-blue-600 relative transition duration-300">
+
+                                <!-- Icon -->
+                                <i class="fas {{ $tab['icon'] }} mb-0.5 md:mb-0 md:mr-1 text-[11px] md:text-sm"></i>
+
+                                <!-- Label -->
+                                <span class="text-[11px] md:text-sm font-medium">{{ $tab['label'] }}</span>
+
+                                <!-- Badge -->
+                                @if (!empty($badges[$key]))
+                                    <span
+                                        class="absolute -top-1 -right-2 md:-right-3 
+                                                                                           bg-blue-600 text-white text-[9px] md:text-xs 
+                                                                                           font-bold px-1.5 md:px-2 py-0.5 rounded-full shadow">
+                                        {{ $badges[$key] }}
+                                    </span>
+                                @endif
+                            </button>
+                        @endforeach
+                    </div>
+
+                    {{-- ====== TAB CONTENT ====== --}}
+                    <div class="p-2">
+
+                        {{-- ========== TAB: DETAIL ADUAN (default aktif) ========== --}}
+                        @php
+                            $defaultImage = asset('images/image.jpg');
+                            $thumbnail = $defaultImage;
+
+                            if (!empty($report->file)) {
+                                $files = is_array($report->file) ? $report->file : json_decode($report->file, true);
+
+                                if (is_array($files)) {
+                                    foreach ($files as $f) {
+                                        $ext = strtolower(pathinfo($f, PATHINFO_EXTENSION));
+
+                                        if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+                                            $thumbnail = asset($f); // langsung dari public/report_files
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        @endphp
+
+                        <div class="tab-pane opacity-100 translate-y-0 transition-all duration-300" data-tab="detail">
+                            {{-- Judul + Nomor Aduan + Stats --}}
+                            <div class="bg-white px-2 pt-2 flex items-start justify-between">
+                                <div>
+                                    @if(auth()->check() && auth()->id() === $report->user_id && $report->status === 'Revisi')
+                                        <button onclick="openRevisiModal()"
+                                            class="px-4 py-2 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600 transition">
+                                            <i class="fas fa-edit"></i> Revisi Aduan
+                                        </button>
+                                    @endif
+
+                                    @if ($report->status === 'Revisi' && $report->komentar_revisi)
+                                        <div class="mt-4 p-4 bg-orange-100 border-l-4 border-orange-500 text-orange-700 rounded-r shadow-sm">
+                                            <div class="flex items-start">
+                                                <div class="flex-shrink-0">
+                                                    <i class="fas fa-info-circle mt-1"></i>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <p class="font-bold">Perlu Revisi</p>
+                                                    <p class="mt-1 text-sm font-semibold">Pesan dari Admin:</p>
+                                                    <p class="mt-1 text-sm">{{ $report->komentar_revisi }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    <h2 class="text-lg font-extrabold text-black">Detail Aduan Warga</h2>
+                                    <p class="text-sm mt-1 font-medium text-gray-400">Nomor Aduan</p>
+                                    <p class="text-sm mt-1 font-bold text-gray-900 tracking-wide">
+                                        {{ $report->tracking_id }}
+                                    </p>
+
+                                    {{-- 🤖 AI INSIGHT CARD --}}
+                                    @if(true) {{-- Selalu tampilkan untuk menjalankan fallback dinamis --}}
+                                        <div class="mt-6 bg-gradient-to-br from-gray-50 to-blue-50/30 rounded-2xl border border-blue-100 p-4 shadow-sm">
+                                            <div class="flex items-center gap-2 mb-3">
+                                                <div class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white shadow-md">
+                                                    <i class="fas fa-robot text-sm"></i>
+                                                </div>
+                                                <h3 class="text-sm font-black uppercase text-blue-900 tracking-widest">AI Insight</h3>
+                                            </div>
+
+                                            @if($report->ai_analysis)
+                                                <div class="mb-4">
+                                                    <p class="text-[11px] font-bold text-blue-400 uppercase tracking-tighter mb-1">Ringkasan AI</p>
+                                                    <p class="text-sm text-gray-800 leading-relaxed font-medium italic">
+                                                        "{{ $report->ai_analysis }}"
+                                                    </p>
+                                                </div>
+                                            @endif
+
+                                            <div class="flex flex-wrap gap-4">
+                                                {{-- Urgensi --}}
+                                                <div>
+                                                    <p class="text-[11px] font-bold text-gray-400 uppercase tracking-tighter mb-1">Urgensi</p>
+                                                    @php
+                                                        $priority = $report->priority;
+                                                        // Dynamic Fallback
+                                                        if (!$priority) {
+                                                            $text = strtolower($report->judul . ' ' . $report->isi);
+                                                            if (Str::contains($text, ['kebakaran', 'api besar', 'meledak', 'kecelakaan', 'darah', 'luka', 'pembunuhan', 'begal', 'senjata', 'banjir bandang', 'gempa', 'darurat', 'tolong'])) {
+                                                                $priority = 'Emergency';
+                                                            } elseif (Str::contains($text, ['jalan putus', 'jembatan', 'pohon tumbang', 'tiang', 'kabel', 'tersengat', 'banjir', 'tanggul', 'gas bocor', 'rawan', 'ancaman'])) {
+                                                                $priority = 'High';
+                                                            } elseif (Str::contains($text, ['sampah', 'bau', 'macet', 'antrean', 'parkir', 'trotoar', 'lampu', 'gelap', 'jalan berlubang', 'air mati', 'keruh', 'pelayanan', 'lambat', 'pungli', 'berisik'])) {
+                                                                $priority = 'Medium';
+                                                            } else {
+                                                                $priority = 'Low';
+                                                            }
+                                                        }
+
+                                                        $pClass = [
+                                                            'Emergency' => 'bg-red-600 text-white animate-pulse',
+                                                            'High' => 'bg-red-100 text-red-700 border border-red-200',
+                                                            'Medium' => 'bg-amber-100 text-amber-700 border border-amber-200',
+                                                            'Low' => 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+                                                        ][$priority] ?? 'bg-gray-100 text-gray-600';
+                                                    @endphp
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black {{ $pClass }}">
+                                                        <i class="fas fa-bolt mr-1"></i> {{ $priority }}
+                                                    </span>
+                                                </div>
+
+                                                {{-- Sentimen --}}
+                                                <div>
+                                                    <p class="text-[11px] font-bold text-gray-400 uppercase tracking-tighter mb-1">Sentimen Publik</p>
+                                                    @php
+                                                        $sentiment = $report->sentiment;
+                                                        // Dynamic Fallback
+                                                        if (!$sentiment) {
+                                                            $text = strtolower($report->judul . ' ' . $report->isi);
+                                                            if (Str::contains($text, ['terima kasih', 'bagus', 'mantap', 'memuaskan', 'hebat', 'apresiasi'])) {
+                                                                $sentiment = 'Positive';
+                                                            } elseif (Str::contains($text, ['jancok','goblok','kecewa', 'parah', 'buruk', 'lambat', 'susah', 'tolong', 'mohon', 'rusak', 'bantu', 'bau', 'anjing', 'bodoh', 'gimana sih'])) {
+                                                                $sentiment = 'Negative';
+                                                            } else {
+                                                                $sentiment = 'Neutral';
+                                                            }
+                                                        }
+
+                                                        $sData = [
+                                                            'Positive' => ['class' => 'text-emerald-600 bg-emerald-50', 'icon' => 'fa-smile'],
+                                                            'Neutral' => ['class' => 'text-blue-600 bg-blue-50', 'icon' => 'fa-meh'],
+                                                            'Negative' => ['class' => 'text-rose-600 bg-rose-50', 'icon' => 'fa-frown'],
+                                                        ][$sentiment] ?? ['class' => 'text-gray-600 bg-gray-50', 'icon' => 'fa-question-circle'];
+                                                    @endphp
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black {{ $sData['class'] }}">
+                                                        <i class="fas {{ $sData['icon'] }} mr-1"></i> {{ $sentiment }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                {{-- Views & Like/Dislike --}}
+                                <div class="text-right self-end">
+                                    <p class="text-sm mb-1">
+                                        <i class="fas fa-eye text-gray-500 mr-1"></i>
+                                        Dilihat <strong>{{ $report->views }}</strong> kali
+                                    </p>
+
+                                    <div class="flex items-center gap-3 justify-end">
+                                        @auth
+                                            {{-- Like --}}
+                                            <form action="{{ route('report.like', $report->id) }}" method="POST">
+                                                @csrf
+                                                <button type="submit"
+                                                    class="flex items-center text-sm transition-all duration-200
+                                                                                                                        {{ $report->likedBy(auth()->id()) ? 'text-blue-600 font-bold' : 'text-gray-400 hover:text-blue-500' }}">
+                                                    <i class="fas fa-thumbs-up mr-1"></i> {{ $report->likes }}
+                                                </button>
+                                            </form>
+
+                                            {{-- Dislike --}}
+                                            <form action="{{ route('report.dislike', $report->id) }}" method="POST">
+                                                @csrf
+                                                <button type="submit"
+                                                    class="flex items-center text-sm transition-all duration-200
+                                                                                                                        {{ $report->dislikedBy(auth()->id()) ? 'text-red-600 font-bold' : 'text-gray-400 hover:text-red-500' }}">
+                                                    <i class="fas fa-thumbs-down mr-1"></i> {{ $report->dislikes }}
+                                                </button>
+                                            </form>
+                                        @else
+                                            <div class="flex items-center gap-5 text-sm"
+                                                x-data="{ showLike: false, showDislike: false }">
+                                                <div class="relative" @mouseenter="showLike = true"
+                                                    @mouseleave="showLike = false">
+                                                    <button disabled class="flex items-center text-gray-400 cursor-not-allowed">
+                                                        <i class="fas fa-thumbs-up mr-1"></i> {{ $report->likes }}
+                                                    </button>
+                                                    <div x-cloak x-show="showLike"
+                                                        class="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap pointer-events-none opacity-0 transition-opacity duration-200 ease-out"
+                                                        :class="{ 'opacity-100': showLike }">
+                                                        Harap login untuk like
+                                                    </div>
+                                                </div>
+                                                <div class="relative" @mouseenter="showDislike = true"
+                                                    @mouseleave="showDislike = false">
+                                                    <button disabled class="flex items-center text-gray-400 cursor-not-allowed">
+                                                        <i class="fas fa-thumbs-down mr-1"></i> {{ $report->dislikes }}
+                                                    </button>
+                                                    <div x-cloak x-show="showDislike"
+                                                        class="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap pointer-events-none opacity-0 transition-opacity duration-200 ease-out"
+                                                        :class="{ 'opacity-100': showDislike }">
+                                                        Harap login untuk dislike
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endauth
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Thumbnail & Modal --}}
+                            <div class="relative group cursor-pointer overflow-hidden rounded-t-xl mt-4"
+                                onclick="openImageModal('{{ $thumbnail }}')">
+                                <img src="{{ $thumbnail }}" alt="Foto Aduan"
+                                    class="w-full h-64 md:h-80 lg:h-96 object-cover transition duration-300 group-hover:brightness-75 rounded-t-2xl">
+                                <div
+                                    class="absolute inset-0 bg-gradient-to-t from-blue-800/20 via-blue-600/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition duration-300 z-10">
+                                </div>
+                                <div
+                                    class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 bg-black/20 z-20">
+                                    <i class="fas fa-search-plus text-white text-3xl"></i>
+                                </div>
+                            </div>
+
+                            {{-- Info Pelapor / Tanggal / Wilayah / Disposisi --}}
+                            <div class="p-2 mt-6 text-gray-700 text-sm">
+                                <div class="grid grid-cols-1 lg:grid-cols-2">
+                                    {{-- Pelapor --}}
+                                    <div class="flex items-start gap-3 mb-3">
+                                        <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-gray-100">
+                                            {{-- Foto Pelapor --}}
+                                            @if ($report->is_anonim)
+                                                <img src="{{ asset('images/avatar.jpg') }}" alt="Anonim"
+                                                    class="h-8 w-8 rounded-full object-cover bg-white shadow" />
+                                            @else
+                                                                                <img src="{{ $report->pelapor && $report->pelapor->foto
+                                                ? asset($report->pelapor->foto)
+                                                : ($report->pelapor && $report->pelapor->avatar
+                                                    ? $report->pelapor->avatar
+                                                    : asset('images/avatar.jpg')) }}" alt="Avatar {{ $report->pelapor->name ?? 'User' }}"
+                                                                                    class="h-8 w-8 rounded-full object-cover bg-white shadow" />
+                                            @endif
+                                        </div>
+                                        <div>
+                                            <div class="text-gray-600 text-sm font-semibold">Pelapor</div>
+                                            <div class="flex items-center flex-wrap gap-2">
+                                                {{-- Nama Pelapor --}}
+                                                <span class="text-gray-600 text-sm">
+                                                    {{ $report->is_anonim ? 'Anonim' : ($report->pelapor->name ?? '-') }}
+                                                </span>
+                                                <span
+                                                    class="px-2 py-0.5 rounded-full text-xs font-medium
+                                                                                        @if($report->status === 'Diajukan') border border-red-500 text-red-500
+                                                                                        @elseif($report->status === 'Dibaca') border border-blue-500 text-blue-500
+                                                                                        @elseif($report->status === 'Direspon') border border-yellow-500 text-yellow-600
+                                                                                        @elseif($report->status === 'Selesai') border border-green-500 text-green-500
+                                                                                        @elseif($report->status === 'Revisi') border border-orange-700 text-orange-700
+                                                                                         @elseif($report->status === 'Arsip') border border-purple-700 text-purple-700
+                                                                                        @else border border-gray-400 text-gray-600 @endif">
+                                                    {{ $report->status }}
+                                                </span>
+                                                <span
+                                                    class="px-2 py-0.5 border border-red-500 text-red-500 rounded-full text-xs font-medium">
+                                                    {{ $report->kategori->nama }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Tanggal --}}
+                                    <div class="flex items-start gap-3 mb-3">
+                                        <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-gray-100">
+                                            <i class="fas fa-calendar-alt text-gray-500 text-xl"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-gray-600 text-sm font-semibold">Tanggal</div>
+                                            <div class="text-gray-600 text-sm">
+                                                {{ $report->created_at->setTimezone('Asia/Jakarta')->locale('id')->isoFormat('DD MMMM YYYY, HH:mm') }}
+                                                WIB
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Wilayah --}}
+                                    <div class="flex items-start gap-3 mb-3">
+                                        <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-gray-100">
+                                            <i class="fas fa-map text-gray-500 text-xl"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-gray-600 text-sm font-semibold">Wilayah</div>
+                                            <div class="text-gray-600 text-sm">{{ $report->wilayah->nama }}</div>
+                                        </div>
+                                    </div>
+
+                                    {{-- Disposisi --}}
+                                    <div class="flex items-start gap-3 mb-7">
+                                        <div class="w-12 h-12 flex items-center justify-center rounded-xl bg-gray-100">
+                                            <i class="fas fa-share-square text-gray-500 text-xl"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-gray-600 mb-1 text-sm font-semibold">Disposisi</div>
+                                            <div>
+                                                @if($report->admin)
+                                                    <span
+                                                        class="inline-block px-3 py-1 rounded-full text-xs font-semibold 
+                                                                                                                                 border border-transparent bg-gradient-to-r from-red-500 to-rose-500 
+                                                                                                                                 text-white shadow-md hover:shadow-lg">
+                                                        {{ $report->admin->name }}
+                                                    </span>
+                                                @else
+                                                    <span class="italic text-gray-500 text-sm">Belum didisposisikan</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Isi Aduan --}}
+                                <div>
+                                    <h3 class="text-xl md:text-2xl font-bold text-gray-900 mt-2">
+                                        {{ $report->judul }}
+                                    </h3>
+                                    <p class="text-gray-800 whitespace-pre-line text-justify leading-relaxed">
+                                        {{ $report->isi }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Tab Konten --}}
+                        <div class="p-2">
+                            {{-- Tindak Lanjut --}}
+                            <div class="tab-pane hidden opacity-0 translate-y-4 transition-all duration-300"
+                                data-tab="tindak">
+                                <div class="max-h-96 overflow-y-auto pr-2 space-y-4">
+                                    @forelse ($followUps as $item)
+                                        {{-- Card Tindak Lanjut --}}
+                                        <div
+                                            class="relative group bg-gray-50 rounded-md p-6 border shadow-sm flex flex-row gap-3 items-start">
+
+                                            {{-- Avatar User --}}
+                                            <div class="flex-shrink-0">
+                                                @if ($item->user && $item->user->is_anonim)
+                                                    <img src="{{ asset('images/avatar.jpg') }}" alt="Anonim"
+                                                        class="h-10 w-10 rounded-full object-cover bg-white shadow" />
+                                                @else
+                                                                                <img src="{{ $item->user && $item->user->foto
+                                                    ? asset($item->user->foto)
+                                                    : ($item->user && $item->user->avatar
+                                                        ? $item->user->avatar
+                                                        : asset('images/avatar.jpg')) }}"
+                                                                                    alt="Avatar {{ $item->user->name ?? $item->nama_pengadu }}"
+                                                                                    class="h-10 w-10 rounded-full object-cover bg-white shadow" />
+                                                @endif
+                                            </div>
+
+                                            {{-- Konten --}}
+                                            <div class="flex-1 min-w-0 space-y-1">
+                                                {{-- Tombol Rating / Edit --}}
+                                                <div class="flex flex-wrap items-center gap-2">
+                                                    @php
+                                                        $isGuest = !auth()->check();
+                                                        $userRating = !$isGuest ? $item->ratings->where('user_id', auth()->id())->first() : null;
+                                                    @endphp
+
+                                                    @if ($isGuest)
+                                                        <button
+                                                            class="relative flex items-center gap-1 px-2 py-1 text-xs rounded bg-gray-400 text-white cursor-not-allowed">
+                                                            <i class="fas fa-star"></i> Nilai
+                                                            <span
+                                                                class="absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-1 text-[10px] rounded bg-gray-800 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+                                                                Silakan login dulu
+                                                            </span>
+                                                        </button>
+                                                    @else
+                                                        @if ($userRating)
+                                                            <div class="flex flex-wrap gap-2">
+                                                                <button
+                                                                    onclick="openRatingModal({{ $item->id }}, true, {{ $userRating->rating }}, '{{ $userRating->komentar }}')"
+                                                                    class="flex items-center gap-1 px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700">
+                                                                    <i class="fas fa-edit"></i> Edit
+                                                                </button>
+                                                                <form id="deleteRatingForm-{{ $item->id }}"
+                                                                    action="{{ route('user.followups.rating.delete', $item->id) }}"
+                                                                    method="POST">
+                                                                    @csrf
+                                                                    @method('DELETE')
+                                                                    <button type="button"
+                                                                        onclick="openDeleteRatingModal({{ $item->id }})"
+                                                                        class="flex items-center gap-1 px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700">
+                                                                        <i class="fas fa-trash-alt"></i> Hapus
+                                                                    </button>
+                                                                </form>
+                                                            </div>
+                                                        @else
+                                                            <button onclick="openRatingModal({{ $item->id }})"
+                                                                class="flex items-center gap-1 px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700">
+                                                                <i class="fas fa-star"></i> Nilai
+                                                            </button>
+                                                        @endif
+                                                    @endif
+
+                                                    {{-- Rating Bintang --}}
+                                                    @php
+                                                        $avg = round($item->ratings_avg_rating ?? 0, 1);
+                                                        $count = $item->ratings_count ?? 0;
+                                                        $fullStars = floor($avg);
+                                                        $halfStar = ($avg - $fullStars) >= 0.5 ? 1 : 0;
+                                                        $emptyStars = 5 - ($fullStars + $halfStar);
+                                                    @endphp
+
+                                                    <button onclick="{{ $isGuest ? '' : "openRatingDetailModal($item->id)" }}"
+                                                        class="relative flex items-center gap-1 group {{ $isGuest ? 'cursor-not-allowed text-gray-400' : '' }}">
+                                                        <div class="flex items-center gap-0.5">
+                                                            @for ($i = 0; $i < $fullStars; $i++)
+                                                                <i class="fas fa-star text-sm text-yellow-400"></i>
+                                                            @endfor
+                                                            @if ($halfStar)
+                                                                <i class="fas fa-star-half-alt text-sm text-yellow-400"></i>
+                                                            @endif
+                                                            @for ($i = 0; $i < $emptyStars; $i++)
+                                                                <i class="far fa-star text-sm text-gray-300"></i>
+                                                            @endfor
+                                                            <span class="ml-1 text-xs text-gray-600">({{ $count }})
+                                                                ulasan</span>
+                                                        </div>
+                                                        @if ($isGuest)
+                                                            <span
+                                                                class="absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-1 text-[10px] rounded bg-gray-800 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+                                                                Silakan login dulu
+                                                            </span>
+                                                        @else
+                                                            {{-- Tooltip untuk desktop/tablet (muncul di atas) --}}
+                                                            <span
+                                                                class="hidden sm:block absolute -top-7 left-1/2 -translate-x-1/2 px-1 py-[2px] text-[9px] rounded bg-gray-800 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+                                                                Lihat selengkapnya
+                                                            </span>
+
+                                                            {{-- Tooltip untuk mobile (muncul di bawah) --}}
+                                                            <span
+                                                                class="block sm:hidden absolute top-6 left-1/2 -translate-x-1/2 px-1 py-[2px] text-[9px] rounded bg-gray-800 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+                                                                Lihat selengkapnya
+                                                            </span>
+                                                        @endif
+                                                    </button>
+                                                </div>
+
+                                                {{-- Nama & Info --}}
+                                                <div
+                                                    class="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-800">
+                                                    <span>{{ $item->user->name ?? 'User tidak diketahui' }}</span>
+                                                </div>
+                                                <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                                                    <span>{{ $item->created_at->translatedFormat('d F Y, H:i') }} WIB</span>
+                                                </div>
+
+                                                {{-- Isi Pesan --}}
+                                                <p class="text-sm text-gray-700 leading-relaxed break-words">
+                                                    {{ Str::limit($item->pesan, 200) }}
+                                                </p>
+
+                                                {{-- Lampiran --}}
+                                                @if ($item->file)
+                                                    @php
+                                                        $filePath = asset($item->file); // langsung dari public/report_files atau folder publik
+                                                        $ext = strtolower(pathinfo($item->file, PATHINFO_EXTENSION));
+                                                    @endphp
+
+                                                    @if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif']))
+                                                        <img src="{{ $filePath }}"
+                                                            class="w-32 h-auto rounded shadow mt-2 cursor-pointer hover:opacity-80"
+                                                            onclick="openModal('{{ $filePath }}')" alt="Lampiran">
+                                                    @elseif ($ext === 'pdf')
+                                                        <a href="{{ $filePath }}" target="_blank"
+                                                            class="flex items-center gap-2 text-red-600 hover:bg-red-100 hover:text-red-700 p-2 rounded mt-2">
+                                                            <i class="fas fa-file-pdf"></i> PDF File
+                                                        </a>
+                                                    @elseif (in_array($ext, ['doc', 'docx']))
+                                                        <a href="{{ $filePath }}" target="_blank"
+                                                            class="flex items-center gap-2 text-blue-600 hover:bg-blue-100 hover:text-blue-700 p-2 rounded mt-2">
+                                                            <i class="fas fa-file-word"></i> Word Document
+                                                        </a>
+                                                    @elseif ($ext === 'zip')
+                                                        <a href="{{ $filePath }}" target="_blank"
+                                                            class="flex items-center gap-2 text-yellow-600 hover:bg-yellow-100 hover:text-yellow-700 p-2 rounded mt-2">
+                                                            <i class="fas fa-file-archive"></i> ZIP Archive
+                                                        </a>
+                                                    @elseif (in_array($ext, ['xls', 'xlsx']))
+                                                        <a href="{{ $filePath }}" target="_blank"
+                                                            class="flex items-center gap-2 text-green-600 hover:bg-green-100 hover:text-green-700 p-2 rounded mt-2">
+                                                            <i class="fas fa-file-excel"></i> Excel File
+                                                        </a>
+                                                    @else
+                                                        <a href="{{ $filePath }}" target="_blank"
+                                                            class="flex items-center gap-2 text-blue-600 hover:bg-blue-100 hover:text-blue-700 p-2 rounded mt-2">
+                                                            <i class="fas fa-file"></i> Lihat File
+                                                        </a>
+                                                    @endif
+                                                @endif
+
+                                            </div>
+
+                                            {{-- Tombol hapus tindak lanjut --}}
+                                            @if (auth()->check() && in_array(auth()->user()->role, ['admin', 'superadmin']))
+                                                <button
+                                                    onclick="openDeleteModal('{{ route('reports.followup.delete', [$report->id, $item->id]) }}')"
+                                                    class="absolute top-2 right-2 text-red-600 text-xs hover:text-red-800 border border-red-600 rounded-full p-1 z-10">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            @endif
+                                        </div>
+
+                                        {{-- Modal Detail Rating (unik per followup) --}}
+                                        <div id="ratingDetailModal-{{ $item->id }}"
+                                            class="hidden fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50">
+
+                                            {{-- Wrapper scroll --}}
+                                            <div class="w-full h-full overflow-y-auto">
+                                                {{-- Konten Modal --}}
+                                                <div
+                                                    class="bg-white rounded-lg shadow-lg 
+                                                                                                                                                                                                                                                           p-3 sm:p-4 md:p-5 
+                                                                                                                                                                                                                                                           w-[80%] sm:w-[80%] md:w-[80%] lg:w-[75%] xl:w-[65%] 
+                                                                                                                                                                                                                                                           max-w-xl md:max-w-2xl 
+                                                                                                                                                                                                                                                           mx-auto my-4 sm:my-6 relative">
+
+                                                    {{-- Header --}}
+                                                    <div class="flex justify-between items-center mb-4">
+                                                        <h3 class="text-sm sm:text-base md:text-lg font-semibold">
+                                                            Detail Rating Tindak Lanjut
+                                                        </h3>
+                                                        <button onclick="closeRatingDetailModal({{ $item->id }})"
+                                                            class="text-gray-500 hover:text-gray-700 text-base sm:text-lg md:text-xl">✕</button>
+                                                    </div>
+
+                                                    {{-- Rata-rata --}}
+                                                    <div class="text-center mb-6">
+                                                        <div class="text-2xl sm:text-3xl md:text-4xl font-bold">
+                                                            {{ number_format($item->ratings_avg_rating ?? 0, 1) }}
+                                                        </div>
+                                                        <div class="flex justify-center text-yellow-400 text-lg sm:text-xl">
+                                                            @php
+                                                                $fullStars = floor($item->ratings_avg_rating ?? 0);
+                                                                $halfStar = (($item->ratings_avg_rating ?? 0) - $fullStars) >= 0.5;
+                                                                $emptyStars = 5 - $fullStars - ($halfStar ? 1 : 0);
+                                                            @endphp
+                                                            @for ($i = 1; $i <= $fullStars; $i++)
+                                                                <i class="fas fa-star"></i>
+                                                            @endfor
+                                                            @if ($halfStar)
+                                                                <i class="fas fa-star-half-alt"></i>
+                                                            @endif
+                                                            @for ($i = 1; $i <= $emptyStars; $i++)
+                                                                <i class="far fa-star text-gray-300"></i>
+                                                            @endfor
+                                                        </div>
+                                                        <p class="text-gray-500 text-xs sm:text-sm md:text-base">
+                                                            {{ $item->ratings_count ?? 0 }} reviews
+                                                        </p>
+                                                    </div>
+
+                                                    {{-- Breakdown --}}
+                                                    <div class="space-y-2 mb-6">
+                                                        @for ($star = 5; $star >= 1; $star--)
+                                                            @php
+                                                                $countStar = $item->ratings->where('rating', $star)->count();
+                                                                $percentage = $count > 0 ? ($countStar / $count) * 100 : 0;
+                                                            @endphp
+                                                            <div class="flex items-center gap-2 text-xs sm:text-sm">
+                                                                <span class="w-5">{{ $star }}★</span>
+                                                                <div class="w-full bg-gray-200 rounded h-2 sm:h-3">
+                                                                    <div class="bg-blue-500 h-2 sm:h-3 rounded"
+                                                                        style="width: {{ $percentage }}%"></div>
+                                                                </div>
+                                                                <span class="text-gray-600">{{ $countStar }}</span>
+                                                            </div>
+                                                        @endfor
+                                                    </div>
+
+                                                    {{-- Daftar Review --}}
+                                                    <div class="space-y-3 sm:space-y-4">
+                                                        <h4 class="font-semibold text-sm sm:text-base">Daftar Penilaian:</h4>
+                                                        @forelse($item->ratings as $r)
+                                                            <div class="border p-2 sm:p-3 rounded-md">
+                                                                <div class="flex justify-between items-center">
+                                                                    <span class="font-semibold text-xs sm:text-sm md:text-base">
+                                                                        {{ $r->user->name ?? 'Anonim' }}
+                                                                    </span>
+                                                                    <span class="text-[10px] sm:text-xs text-gray-500">
+                                                                        {{ $r->created_at->diffForHumans() }}
+                                                                    </span>
+                                                                </div>
+                                                                <div class="flex text-yellow-400 text-xs sm:text-sm md:text-base">
+                                                                    @for($i = 1; $i <= 5; $i++)
+                                                                        <i
+                                                                            class="fas fa-star {{ $i <= $r->rating ? 'text-yellow-400' : 'text-gray-300' }}"></i>
+                                                                    @endfor
+                                                                </div>
+                                                                <p class="text-gray-600 text-[11px] sm:text-xs md:text-sm italic">
+                                                                    {{ $r->komentar ?: 'Tidak ada komentar.' }}
+                                                                </p>
+                                                            </div>
+                                                        @empty
+                                                            <p class="text-gray-500 text-xs sm:text-sm">Belum ada penilaian.</p>
+                                                        @endforelse
+                                                    </div>
+
+                                                    {{-- Footer --}}
+                                                    <div class="flex justify-end mt-6">
+                                                        <button onclick="closeRatingDetailModal({{ $item->id }})"
+                                                            class="px-3 py-1.5 sm:px-4 sm:py-2 rounded bg-gray-200 hover:bg-gray-300 text-xs sm:text-sm md:text-base">
+                                                            Tutup
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+                                    @empty
+                                        <p class="mt-4 text-gray-500">Belum ada tindak lanjut.</p>
+                                    @endforelse
+                                </div>
+                                {{-- Form tambah tindak lanjut --}}
+                                @if (auth()->check() && in_array(auth()->user()->role, ['admin', 'superadmin']))
+                                    <form action="{{ route('reports.followup', ['id' => $report->id]) }}" method="POST"
+                                        enctype="multipart/form-data" class="mt-4 space-y-4">
+                                        @csrf
+                                    <form action="{{ route('reports.followup', ['id' => $report->id]) }}" method="POST"
+                                        enctype="multipart/form-data" class="mt-4 space-y-4">
+                                        @csrf
+                                        
+                                        <div class="flex justify-between items-center mb-1">
+                                            <label class="text-sm font-semibold text-gray-700">Isi Tindak Lanjut</label>
+                                            <button type="button" id="btn-generate-ai"
+                                                class="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-bold hover:bg-purple-200 transition flex items-center gap-1">
+                                                <i class="fas fa-magic"></i> Buat Draft AI
+                                            </button>
+                                        </div>
+                                        <textarea id="followup-pesan" name="pesan" class="w-full border rounded p-2 focus:ring-red-500 focus:border-red-500" rows="5"
+                                            placeholder="Tulis tindak lanjut atau gunakan AI untuk membuat draft..." required></textarea>
+                                        <input type="file" name="file" class="block w-full border rounded p-1">
+                                        <button type="submit"
+                                            class="flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-red-500 to-rose-500 text-white font-semibold shadow-lg hover:scale-105 hover:shadow-xl transition group">
+                                            <i class="fas fa-paper-plane text-white"></i>
+                                            <span>Kirim Tindak Lanjut</span>
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+
+                            <!-- Modal Hapus Rating -->
+                            <div id="deleteRatingModal"
+                                class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                                <div
+                                    class="bg-white rounded-lg shadow-lg w-full max-w-sm sm:max-w-md md:max-w-lg p-4 sm:p-6 text-center">
+
+                                    {{-- Judul --}}
+                                    <h3 class="text-base sm:text-lg font-semibold mb-3">Hapus Rating</h3>
+
+                                    {{-- Deskripsi --}}
+                                    <p class="text-sm sm:text-base text-gray-600 mb-6">
+                                        Apakah Anda yakin ingin menghapus rating ini?
+                                    </p>
+
+                                    {{-- Tombol Aksi --}}
+                                    <div class="flex justify-center gap-3 mt-4">
+                                        <button type="button" onclick="closeDeleteRatingModal()"
+                                            class="px-4 py-2 text-sm rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition">
+                                            Batal
+                                        </button>
+                                        <button id="confirmDeleteRatingBtn"
+                                            class="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 transition">
+                                            Hapus
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Modal Rating -->
+                            <div id="ratingModal"
+                                class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 px-4">
+                                <div
+                                    class="bg-white rounded-2xl shadow-lg w-full max-w-sm sm:max-w-md lg:max-w-lg p-5 sm:p-6">
+
+                                    <!-- Judul -->
+                                    <h3 class="text-base sm:text-lg font-semibold mb-4 text-center">
+                                        Beri Rating Tindak Lanjut
+                                    </h3>
+
+                                    <!-- Form -->
+                                    <form id="ratingForm" method="POST">
+                                        @csrf
+
+                                        <!-- Bintang -->
+                                        <div id="starContainer" class="flex justify-center gap-1 mb-4 cursor-pointer">
+                                            @for ($i = 1; $i <= 5; $i++)
+                                                <svg data-value="{{ $i }}" xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 24 24" fill="currentColor"
+                                                    class="star w-8 h-8 sm:w-10 sm:h-10 text-gray-300 transition-colors duration-200">
+                                                    <path fill-rule="evenodd"
+                                                        d="M12 17.27l5.18 3.73-1.64-6.81 5.46-4.73-7.19-.61L12 2 10.19 8.85l-7.19.61 5.46 4.73-1.64 6.81L12 17.27z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                            @endfor
+                                        </div>
+
+                                        <input type="hidden" name="rating" id="ratingValue">
+
+                                        <!-- Textarea -->
+                                        <textarea name="komentar" rows="3" placeholder="Tulis komentar (opsional)"
+                                            class="w-full border rounded-lg p-2 sm:p-3 text-sm sm:text-base focus:ring focus:ring-blue-300"></textarea>
+
+                                        <!-- Tombol Aksi -->
+                                        <div class="flex justify-end gap-2 mt-4">
+                                            <button type="button" onclick="closeRatingModal()"
+                                                class="px-4 py-2 text-sm sm:text-base rounded-lg bg-gray-200 hover:bg-gray-300 transition">
+                                                Batal
+                                            </button>
+                                            <button type="submit"
+                                                class="px-4 py-2 text-sm sm:text-base rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
+                                                Kirim
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <script>
+                                // === RATING ===
+                                const stars = document.querySelectorAll("#starContainer .star");
+                                const ratingValue = document.getElementById("ratingValue");
+                                let selectedRating = 0;
+
+                                stars.forEach(star => {
+                                    star.addEventListener("mouseover", function () {
+                                        const val = this.getAttribute("data-value");
+                                        highlightStars(val);
+                                    });
+
+                                    star.addEventListener("mouseout", function () {
+                                        highlightStars(selectedRating); // kembali ke pilihan terakhir
+                                    });
+
+                                    star.addEventListener("click", function () {
+                                        selectedRating = this.getAttribute("data-value");
+                                        ratingValue.value = selectedRating;
+                                        highlightStars(selectedRating);
+                                    });
+                                });
+
+                                function highlightStars(count) {
+                                    stars.forEach(star => {
+                                        const val = star.getAttribute("data-value");
+                                        if (val <= count) {
+                                            star.classList.remove("text-gray-300");
+                                            star.classList.add("text-yellow-400");
+                                        } else {
+                                            star.classList.remove("text-yellow-400");
+                                            star.classList.add("text-gray-300");
+                                        }
+                                    });
+                                }
+
+                                // === 🤖 AI SMART RESPONSE GENERATOR ===
+                                const btnAI = document.getElementById('btn-generate-ai');
+                                if(btnAI) {
+                                    btnAI.addEventListener('click', function() {
+                                        const originalText = this.innerHTML;
+                                        this.disabled = true;
+                                        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menulis...';
+                                        
+                                        // Konteks Laporan
+                                        const reportJudul = @json($report->judul);
+                                        const reportIsi = @json($report->isi);
+                                        const prompt = `Buatkan draft respon tindak lanjut yang profesional, empatik, dan solutif untuk laporan warga berikut ini.
+                                        
+Judul: ${reportJudul}
+Isi: ${reportIsi}
+
+Posisi kami: Pemerintah/Admin.
+Nada: Formal tapi ramah.
+Langsung berikan isi pesannya saja tanpa pembuka "berikut adalah draft...".`;
+
+                                        fetch('https://openrouter.ai/api/v1/chat/completions', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Authorization': 'Bearer {{ config('services.openrouter.key') }}',
+                                                'Content-Type': 'application/json',
+                                                'HTTP-Referer': '{{ config('app.url') }}',
+                                                'X-Title': 'E-Lapor-DIY-SmartResponse'
+                                            },
+                                            body: JSON.stringify({
+                                                'model': 'meta-llama/llama-3.3-70b-instruct:free',
+                                                'messages': [
+                                                    { 'role': 'system', 'content': 'Kamu adalah staf humas pemerintah yang profesional.' },
+                                                    { 'role': 'user', 'content': prompt }
+                                                ]
+                                            })
+                                        })
+                                        .then(res => res.json())
+                                        .then(data => {
+                                            const reply = data.choices[0].message.content;
+                                            document.getElementById('followup-pesan').value = reply;
+                                            this.disabled = false;
+                                            this.innerHTML = originalText;
+                                        })
+                                        .catch(err => {
+                                            alert('Gagal membuat draft AI: ' + err.message);
+                                            this.disabled = false;
+                                            this.innerHTML = originalText;
+                                        });
+                                    });
+                                }
+                                    stars.forEach(star => {
+                                        if (star.getAttribute("data-value") <= count) {
+                                            star.classList.remove("text-gray-300");
+                                            star.classList.add("text-yellow-400");
+                                        } else {
+                                            star.classList.remove("text-yellow-400");
+                                            star.classList.add("text-gray-300");
+                                        }
+                                    });
+                                }
+
+                                function openRatingModal(followupId, isEdit = false, rating = 0, komentar = '') {
+                                    let url;
+                                    if (isEdit) {
+                                        url = "{{ route('user.followups.rating.update', ['followupId' => '__id__']) }}";
+                                    } else {
+                                        url = "{{ route('user.followups.rating.store', ['followupId' => '__id__']) }}";
+                                    }
+                                    url = url.replace('__id__', followupId);
+
+                                    document.getElementById('ratingForm').action = url;
+
+                                    // Prefill rating kalau edit
+                                    if (isEdit) {
+                                        selectedRating = rating;
+                                        ratingValue.value = rating;
+                                        highlightStars(rating);
+                                        document.querySelector('#ratingForm textarea[name="komentar"]').value = komentar;
+                                    } else {
+                                        selectedRating = 0;
+                                        ratingValue.value = '';
+                                        highlightStars(0);
+                                        document.querySelector('#ratingForm textarea[name="komentar"]').value = '';
+                                    }
+
+                                    document.getElementById('ratingModal').classList.remove('hidden');
+                                }
+
+                                function closeRatingModal() {
+                                    document.getElementById('ratingModal').classList.add('hidden');
+                                }
+
+                                function openRatingDetailModal(id) {
+                                    const modal = document.getElementById(`ratingDetailModal-${id}`);
+                                    modal.classList.remove('hidden');
+
+                                    // Reset scroll ke atas tiap buka modal
+                                    const wrapper = modal.querySelector('.overflow-y-auto');
+                                    if (wrapper) wrapper.scrollTop = 0;
+                                }
+
+                                function closeRatingDetailModal(id) {
+                                    document.getElementById(`ratingDetailModal-${id}`).classList.add('hidden');
+                                }
+
+                                // === DELETE RATING ===
+                                let ratingIdToDelete = null;
+
+                                function openDeleteRatingModal(itemId) {
+                                    ratingIdToDelete = itemId;
+                                    document.getElementById("deleteRatingModal").classList.remove("hidden");
+                                }
+
+                                function closeDeleteRatingModal() {
+                                    ratingIdToDelete = null;
+                                    document.getElementById("deleteRatingModal").classList.add("hidden");
+                                }
+
+                                document.getElementById("confirmDeleteRatingBtn").addEventListener("click", function () {
+                                    if (ratingIdToDelete) {
+                                        document.getElementById(`deleteRatingForm-${ratingIdToDelete}`).submit();
+                                    }
+                                });
+                            </script>
+
+                            {{-- Modal Hapus Konfirmasi (FollowUp/Comment Universal) --}}
+                            <div id="deleteModal"
+                                class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50">
+                                <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+                                    <h3 class="text-xl font-semibold mb-4">Konfirmasi Penghapusan</h3>
+                                    <p class="text-gray-600 mb-6">Apakah Anda yakin ingin menghapus ini?</p>
+                                    <form id="deleteForm" method="POST" class="space-x-4">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Hapus</button>
+                                        <button type="button"
+                                            class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                                            onclick="closeDeleteModal()">Batal</button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            {{-- ========== TAB: KOMENTAR ========== --}}
+                            <div class="tab-pane hidden opacity-0 translate-y-4 transition-all duration-300"
+                                data-tab="komentar">
+                                <div class="max-h-96 overflow-y-auto pr-2">
+                                    @forelse ($comments as $item)
+                                        <div class="relative group mb-4 bg-gray-50 rounded-md p-3 border shadow-sm flex gap-3">
+                                            {{-- Avatar User --}}
+                                            <div class="flex items-center justify-center rounded-xl">
+                                                @if ($item->user && $item->user->is_anonim)
+                                                    <img src="{{ asset('images/avatar.jpg') }}" alt="Anonim"
+                                                        class="h-8 w-8 rounded-full object-cover bg-white shadow" />
+                                                @else
+                                                    <img src="{{ $item->user && $item->user->foto
+                                                                                        ? asset($item->user->foto)   {{-- langsung asset() --}}
+                                                                                        : ($item->user && $item->user->avatar
+                                                                                            ? $item->user->avatar
+                                                                                            : asset('images/avatar.jpg')) }}"
+                                                        alt="Avatar {{ $item->user->name ?? $item->nama_pengadu }}"
+                                                        class="h-8 w-8 rounded-full object-cover bg-white shadow" />
+                                                @endif
+                                            </div>
+
+                                            {{-- Isi Komentar --}}
+                                            <div class="flex-1">
+                                                <div
+                                                    class="flex flex-col md:flex-row md:items-center md:gap-2 text-xs text-gray-600">
+                                                    <strong>{{ $item->user->name ?? $item->nama_pengadu }}</strong>
+                                                    <span class="text-gray-500">
+                                                        ({{ $item->created_at->setTimezone('Asia/Jakarta')->locale('id')->isoFormat('D MMMM YYYY, HH.mm') }})
+                                                    </span>
+                                                </div>
+                                                <p class="text-gray-800 mb-2">{{ $item->pesan }}</p>
+
+                                                {{-- Lampiran File --}}
+                                                @if ($item->file)
+                                                    @php
+                                                        $filePath = asset($item->file); // langsung ambil dari public/comment_files
+                                                        $fileExtension = pathinfo($item->file, PATHINFO_EXTENSION);
+                                                    @endphp
+
+                                                    @if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif']))
+                                                        <img src="{{ $filePath }}"
+                                                            class="w-32 h-auto rounded shadow cursor-pointer hover:opacity-80 transition-opacity"
+                                                            onclick="openImageModal('{{ $filePath }}')" alt="Lampiran Komentar">
+                                                    @elseif ($fileExtension === 'pdf')
+                                                        <a href="{{ $filePath }}"
+                                                            class="text-red-600 hover:bg-red-100 hover:text-red-700 p-2 rounded transition-all flex items-center"
+                                                            target="_blank">
+                                                            <i class="fas fa-file-pdf mr-2"></i> PDF File
+                                                        </a>
+                                                    @elseif (in_array(strtolower($fileExtension), ['doc', 'docx']))
+                                                        <a href="{{ $filePath }}"
+                                                            class="text-blue-600 hover:bg-blue-100 hover:text-blue-700 p-2 rounded transition-all flex items-center"
+                                                            target="_blank">
+                                                            <i class="fas fa-file-word mr-2"></i> Word Document
+                                                        </a>
+                                                    @elseif ($fileExtension === 'zip')
+                                                        <a href="{{ $filePath }}"
+                                                            class="text-yellow-600 hover:bg-yellow-100 hover:text-yellow-700 p-2 rounded transition-all flex items-center"
+                                                            target="_blank">
+                                                            <i class="fas fa-file-archive mr-2"></i> ZIP Archive
+                                                        </a>
+                                                    @elseif (in_array(strtolower($fileExtension), ['xls', 'xlsx']))
+                                                        <a href="{{ $filePath }}"
+                                                            class="text-green-600 hover:bg-green-100 hover:text-green-700 p-2 rounded transition-all flex items-center"
+                                                            target="_blank">
+                                                            <i class="fas fa-file-excel mr-2"></i> Excel File
+                                                        </a>
+                                                    @else
+                                                        <a href="{{ $filePath }}"
+                                                            class="text-blue-600 hover:bg-blue-100 hover:text-blue-700 p-2 rounded transition-all flex items-center"
+                                                            target="_blank">
+                                                            <i class="fas fa-file mr-2"></i> Lihat File
+                                                        </a>
+                                                    @endif
+                                                @endif
+                                            </div>
+
+                                            {{-- Tombol edit & hapus komentar --}}
+                                            @if(auth()->check() && (auth()->id() === $item->user_id || in_array(auth()->user()->role, ['admin', 'superadmin'])))
+                                                <div class="absolute top-2 right-2 flex gap-2 z-10">
+                                                    <button type="button"
+                                                        onclick='openEditModal({{ $item->id }}, {!! json_encode($item->pesan) !!})'
+                                                        class="text-blue-600 text-xs hover:text-blue-800 border border-blue-600 rounded-full p-1">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button
+                                                        onclick="openDeleteModal('{{ route('reports.comment.delete', $item->id) }}')"
+                                                        class="text-red-600 text-xs hover:text-red-800 border border-red-600 rounded-full p-1">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @empty
+                                        <p class="mt-4 text-gray-500">Belum ada komentar.</p>
+                                    @endforelse
+                                </div>
+
+                                {{-- Form Tambah Komentar --}}
+                                @if (auth()->check() && in_array(auth()->user()->role, ['user', 'admin', 'superadmin']))
+                                    <form action="{{ route('reports.comment', ['id' => $report->id]) }}" method="POST"
+                                        enctype="multipart/form-data" class="mt-2 space-y-4">
+                                        @csrf
+                                        <textarea name="pesan" class="w-full border rounded p-2" rows="4"
+                                            placeholder="Tulis komentar..." required></textarea>
+                                        <input type="file" name="file" class="block w-full border rounded p-1">
+                                        <button type="submit"
+                                            class="flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-red-500 to-rose-500 text-white font-semibold shadow-lg hover:scale-105 hover:shadow-xl transition group">
+                                            <i class="fas fa-paper-plane text-white"></i>
+                                            <span>Kirim Komentar</span>
+                                        </button>
+                                    </form>
+                                @else
+                                    <div
+                                        class="mt-2 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 p-4 rounded text-sm flex items-start gap-2">
+                                        <i class="fas fa-info-circle mt-1"></i>
+                                        <p>
+                                            Silakan <a href="{{ route('login') }}"
+                                                class="font-bold hover:underline hover:text-yellow-600">login</a>
+                                            untuk memberi komentar
+                                        </p>
+                                    </div>
+                                @endif
+                            </div>
+
+                            {{-- Modal Edit Komentar --}}
+                            <div id="editCommentModal"
+                                class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+                                <div class="bg-white w-full max-w-md rounded-lg shadow-lg p-6">
+                                    <h2 class="text-lg font-semibold mb-4">Edit Komentar</h2>
+                                    <form id="editCommentForm" method="POST" enctype="multipart/form-data">
+                                        @csrf
+                                        @method('PATCH')
+                                        <textarea id="editCommentText" name="pesan" class="w-full border rounded p-2 mb-3"
+                                            rows="3" required></textarea>
+                                        <input type="file" name="file" class="block w-full border rounded p-1 mb-3">
+                                        <div class="flex justify-end gap-2">
+                                            <button type="button" onclick="closeEditModal()"
+                                                class="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 transition">Batal</button>
+                                            <button type="submit"
+                                                class="px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600 transition">Update</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            {{-- ========== TAB: LAMPIRAN ========== --}}
+                            <div class="tab-pane hidden opacity-0 translate-y-4 transition-all duration-300"
+                                data-tab="lampiran">
+                                @if (!empty($report->file) && is_array($report->file))
+                                    <div class="flex flex-wrap gap-4 mt-4">
+                                        @foreach ($report->file as $file)
+                                            @php
+                                                $filePath = asset($file); // langsung ambil dari public/report_files
+                                                $fileExtension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+                                            @endphp
+
+                                            @if (in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif']))
+                                                <div>
+                                                    <img src="{{ $filePath }}"
+                                                        class="w-32 h-auto rounded shadow cursor-pointer hover:opacity-80 transition-opacity"
+                                                        onclick="openImageModal('{{ $filePath }}')" alt="Lampiran Gambar">
+                                                </div>
+                                            @elseif ($fileExtension === 'pdf')
+                                                <div>
+                                                    <a href="{{ $filePath }}"
+                                                        class="text-red-600 hover:bg-red-100 hover:text-red-700 p-2 rounded transition-all flex items-center"
+                                                        target="_blank">
+                                                        <i class="fas fa-file-pdf mr-2"></i> PDF File
+                                                    </a>
+                                                </div>
+                                            @elseif (in_array($fileExtension, ['doc', 'docx']))
+                                                <div>
+                                                    <a href="{{ $filePath }}"
+                                                        class="text-blue-600 hover:bg-blue-100 hover:text-blue-700 p-2 rounded transition-all flex items-center"
+                                                        target="_blank">
+                                                        <i class="fas fa-file-word mr-2"></i> Word Document
+                                                    </a>
+                                                </div>
+                                            @elseif ($fileExtension === 'zip')
+                                                <div>
+                                                    <a href="{{ $filePath }}"
+                                                        class="text-yellow-600 hover:bg-yellow-100 hover:text-yellow-700 p-2 rounded transition-all flex items-center"
+                                                        target="_blank">
+                                                        <i class="fas fa-file-archive mr-2"></i> ZIP Archive
+                                                    </a>
+                                                </div>
+                                            @elseif (in_array($fileExtension, ['xls', 'xlsx']))
+                                                <div>
+                                                    <a href="{{ $filePath }}"
+                                                        class="text-green-600 hover:bg-green-100 hover:text-green-700 p-2 rounded transition-all flex items-center"
+                                                        target="_blank">
+                                                        <i class="fas fa-file-excel mr-2"></i> Excel File
+                                                    </a>
+                                                </div>
+                                            @else
+                                                <div>
+                                                    <a href="{{ $filePath }}"
+                                                        class="text-blue-600 hover:bg-blue-100 hover:text-blue-700 p-2 rounded transition-all flex items-center"
+                                                        target="_blank">
+                                                        <i class="fas fa-file mr-2"></i> Lihat Lampiran
+                                                    </a>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <p class="mt-4 text-gray-500">Tidak ada lampiran.</p>
+                                @endif
+                            </div>
+
+
+                            {{-- Modal Gambar (UNIVERSAL untuk semua gambar) --}}
+                            <div id="imageModal"
+                                class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50">
+                                <span class="absolute top-4 right-6 text-white text-3xl cursor-pointer"
+                                    onclick="closeImageModal()">&times;</span>
+                                <img id="modalImage" class="max-w-3xl max-h-[90vh] rounded shadow-xl" alt="Preview">
+                            </div>
+
+                            {{-- ========== TAB: LOKASI ========== --}}
+                            <div class="tab-pane hidden opacity-0 translate-y-4 transition-all duration-300"
+                                data-tab="lokasi">
+                                @if ($report->lokasi && $report->latitude && $report->longitude)
+                                    <p class="text-sm text-gray-700 mt-4 mb-2"><strong>Alamat:</strong> {{ $report->lokasi }}
+                                    </p>
+                                    <p class="text-sm text-gray-700 mb-2">
+                                        <strong>Lintang:</strong> {{ $report->latitude }}<br>
+                                        <strong>Bujur:</strong> {{ $report->longitude }}
+                                    </p>
+                                    <div id="map" class="w-full h-64 rounded shadow"></div>
+                                @else
+                                    <p class="text-gray-500">Lokasi belum tersedia.</p>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+ 
+<!-- Modal Revisi -->
+<div id="revisiModal"
+    class="fixed inset-0 bg-black/40 hidden z-[9999] flex items-center justify-center backdrop-blur-sm animate__animated animate__fadeIn">
+
+   <div class="relative w-full max-w-3xl p-6 rounded-2xl animate__animated animate__fadeInUp transition-all duration-300
+            bg-cover bg-center bg-no-repeat shadow-2xl"
+     style="background-image: url('/images/red.jpg');">
+
+
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-semibold text-white flex items-center gap-2">
+                <i class="fas fa-edit"></i> Revisi Aduan
+            </h2>
+        </div>
+
+        <!-- Form -->
+        <form method="POST" action="{{ route('user.aduan.update', $report->id) }}"
+            enctype="multipart/form-data" id="revisiForm">
+            @csrf
+            @method('PUT')
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- Judul -->
+                <div>
+                    <label class="text-white text-sm font-medium">Judul</label>
+                    <input type="text" name="judul" maxlength="150"
+                        value="{{ old('judul', $report->judul) }}"
+                        class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white focus:ring-2 focus:ring-red-400 focus:border-red-400 transition text-gray-900"
+                        required>
+                </div>
+
+                <!-- Kategori -->
+                <div>
+                    <label class="text-white text-sm font-medium">Kategori</label>
+                    <select name="kategori_id"
+                        class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white text-gray-900 focus:ring-2 focus:ring-red-400 focus:border-red-400 transition"
+                        required>
+                        <option value="">- Pilih Kategori -</option>
+                        @foreach(App\Models\KategoriUmum::where('tipe','non_wbs_admin')->get() as $kategori)
+                            <option value="{{ $kategori->id }}" {{ $report->kategori_id == $kategori->id ? 'selected' : '' }}>
+                                {{ $kategori->nama }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Isi Aduan -->
+                <div class="md:col-span-2">
+                    <label class="text-white text-sm font-medium">Isi</label>
+                    <textarea name="isi" rows="4" maxlength="1000"
+                        class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white text-gray-900 focus:ring-2 focus:ring-red-400 focus:border-red-400 transition"
+                        required>{{ old('isi', $report->isi) }}</textarea>
+                </div>
+
+                <!-- Wilayah -->
+                <div>
+                    <label class="text-white text-sm font-medium">Wilayah</label>
+                    <select name="wilayah_id"
+                        class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white text-gray-900 focus:ring-2 focus:ring-red-400 focus:border-red-400 transition"
+                        required>
+                        <option value="">- Pilih Wilayah -</option>
+                        @foreach(App\Models\WilayahUmum::all() as $wilayah)
+                            <option value="{{ $wilayah->id }}" {{ $report->wilayah_id == $wilayah->id ? 'selected' : '' }}>
+                                {{ $wilayah->nama }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Lampiran -->
+                <div>
+                    <label class="text-white text-sm font-medium">Lampiran Baru (opsional)</label>
+                    <input type="file" name="file[]" multiple
+                        class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-white text-gray-900 focus:ring-2 focus:ring-red-400 focus:border-red-400 transition">
+                    <p class="text-xs text-white mt-1">*Biarkan kosong jika tidak ingin mengganti file*</p>
+                </div>
+
+                <!-- Checkbox -->
+                <div class="flex flex-col gap-2 md:col-span-2">
+                    <label class="inline-flex items-center text-white font-medium">
+                        <input type="checkbox" name="is_anonim" value="1"
+                            class="mr-2" {{ old('is_anonim', $report->is_anonim) ? 'checked' : '' }}>
+                        Anonim
+                    </label>
+
+                    <label class="inline-flex items-center text-white font-medium">
+                        <input type="checkbox" name="is_arsip" value="1"
+                            class="mr-2" {{ old('is_arsip', $report->is_arsip) ? 'checked' : '' }}>
+                        Rahasia
+                    </label>
+                </div>
+
+                <!-- Informasi User -->
+                <div class="md:col-span-2 bg-red-50 border border-red-200 rounded-xl p-4">
+                    <h3 class="text-red-700 font-semibold mb-2 text-lg">Informasi Pelapor</h3>
+                    <p class="text-gray-800 text-sm">Nama: {{ $report->nama_pengadu }}</p>
+                    <p class="text-gray-800 text-sm">Email: {{ $report->email_pengadu }}</p>
+                    <p class="text-gray-800 text-sm">No. Telepon: {{ $report->telepon_pengadu ?? '-' }}</p>
+                    <p class="text-gray-800 text-sm">NIK: {{ $report->nik ?? '-' }}</p>
+                </div>
+
+                <!-- reCAPTCHA -->
+                <div class="md:col-span-2 mt-1">
+                    <div class="g-recaptcha" data-sitekey="{{ config('captcha.sitekey') }}"></div>
+                </div>
+
+            </div>
+
+            <!-- Submit buttons -->
+            <div class="mt-6 flex justify-end gap-3">
+                <button type="button" onclick="closeRevisiModal()"
+                    class="px-6 py-2 rounded-xl bg-white hover:bg-gray-400 text-gray-800 font-semibold shadow-md transition">
+                    Batal
+                </button>
+
+                <button type="submit"
+                    class="px-6 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold shadow-md transition">
+                    <i class="fas fa-save mr-1"></i> Ajukan Kembali
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+
+<!-- 🌟 Overlay Loading AI -->
+<div id="aiOverlay"
+    class="fixed inset-0 bg-black/50 backdrop-blur-md hidden z-[9999] flex flex-col items-center justify-center animate__animated animate__fadeIn">
+
+    <div
+        class="bg-white/10 px-8 py-6 rounded-3xl border border-white/20 text-white text-center shadow-2xl backdrop-blur-xl animate__animated animate__zoomIn">
+
+        <!-- Modern Spinner -->
+        <div class="relative w-14 h-14 mx-auto mb-5">
+            <div
+                class="absolute inset-0 rounded-full border-4 border-white/30 border-t-transparent animate-spin">
+            </div>
+            <div
+                class="absolute inset-2 rounded-full border-4 border-white/50 border-b-transparent animate-spin-slow">
+            </div>
+        </div>
+
+        <h3 class="text-2xl font-bold tracking-wide mb-2">Mengajukan Revisi...</h3>
+        <p class="text-sm opacity-90">Sistem Moderasi AI sedang memproses aduan anda</p>
+    </div>
+</div>
+
+<style>
+    @keyframes spin-slow {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(-360deg);
+        }
+    }
+
+    .animate-spin-slow {
+        animation: spin-slow 2s linear infinite;
+    }
+</style>
+
+<!-- ❌ Overlay Error Form -->
+<div id="formErrorOverlay"
+    class="fixed inset-0 bg-black/60 backdrop-blur-md hidden z-[9999] flex items-center justify-center animate__animated animate__fadeIn">
+
+    <div
+        class="bg-red-600/70 px-8 py-6 rounded-3xl border border-red-300/40 shadow-2xl backdrop-blur-xl text-white text-center animate__animated animate__fadeInDown animate__faster">
+
+        <!-- Icon -->
+        <div class="mb-4">
+            <i class="fas fa-exclamation-triangle text-4xl animate-pulse drop-shadow-lg"></i>
+        </div>
+
+        <h3 class="text-2xl font-bold mb-2 tracking-wide">Terjadi Kesalahan</h3>
+
+        <p id="formErrorMessage" class="text-sm opacity-90 mb-5"></p>
+
+        <button onclick="closeFormErrorOverlay()"
+            class="bg-white/20 hover:bg-white/30 text-white font-semibold px-6 py-2.5 rounded-full transition-all duration-200 shadow-inner hover:shadow-white/20">
+            Tutup
+        </button>
+    </div>
+</div>
+
+<script>
+function openRevisiModal() {
+    document.getElementById("revisiModal").classList.remove("hidden");
+}
+
+function closeRevisiModal() {
+    document.getElementById("revisiModal").classList.add("hidden");
+}
+
+// Tampilkan overlay loading saat submit revisi
+document.getElementById("revisiForm").addEventListener("submit", function () {
+    document.getElementById("aiOverlay").classList.remove("hidden");
+});
+
+// Fungsi tutup overlay error
+window.closeFormErrorOverlay = function() {
+    document.getElementById("formErrorOverlay").classList.add("hidden");
+};
+
+// ✅ Tampilkan error dari session / validasi Laravel
+document.addEventListener("DOMContentLoaded", () => {
+    const formErrorOverlay = document.getElementById("formErrorOverlay");
+    const formErrorMessage = document.getElementById("formErrorMessage");
+
+   @if (session('error') || $errors->any() || session('ai_reason') || session('ai_decision'))
+                            const decision = @json(session('ai_decision'));
+                            const reason = @json(session('ai_reason'));
+                            const validationError = @json($errors->first());
+                            const serverError = @json(session('error'));
+
+                            let errorMessage = '';
+
+                            if (serverError) {
+                                errorMessage = serverError;
+                            } else if (validationError) {
+                                errorMessage = validationError;
+                            } else if (decision) {
+                                errorMessage = "Revisi Laporan ditolak oleh Sistem Moderasi AI.";
+                            }
+
+                            if (reason) {
+                                errorMessage += "\nAlasan: " + reason;
+                            }
+
+                            formErrorMessage.innerHTML = errorMessage.replace(/\n/g, "<br>");
+                            formErrorOverlay.classList.remove("hidden");
+                        @endif
+});
+</script>
+
+<!-- Load reCAPTCHA -->
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>     
+@endsection
+
+        @section('include-js')
+
+            <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+            <!-- Mapbox CSS & JS -->
+            <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+            <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+            <script
+                src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.1/mapbox-gl-geocoder.min.js"></script>
+
+            <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                    // === Default tab → Detail Aduan ===
+                    showTab('detail');
+
+                    const lat = {{ $report->latitude ?? 0 }};
+                    const lng = {{ $report->longitude ?? 0 }};
+                    const mapElement = document.getElementById('map');
+
+                    if (lat && lng && mapElement) {
+                        // ==== GLOBAL KONFIGURASI PETA ====
+                        mapboxgl.accessToken = "pk.eyJ1IjoiZmFkaWxhaDI0OCIsImEiOiJja3dnZXdmMnQwbno1MnRxcXYwdjB3cG9qIn0.v4gAtavpn1GzgtD7f3qapA";
+
+                        // Inisialisasi peta
+                        const map = new mapboxgl.Map({
+                            container: mapElement,
+                            style: "mapbox://styles/mapbox/streets-v12", // bisa diganti "satellite-v9"
+                            center: [lng, lat],
+                            zoom: 17
+                        });
+
+                        // Tambahkan kontrol navigasi (zoom & rotate)
+                        map.addControl(new mapboxgl.NavigationControl());
+
+                        // Tambahkan marker di lokasi
+                        new mapboxgl.Marker({ color: "red" })
+                            .setLngLat([lng, lat])
+                            .setPopup(new mapboxgl.Popup().setHTML(`<b>{{ $report->lokasi }}</b>`))
+                            .addTo(map);
+
+                        // Fungsi untuk resize map
+                        function resizeMap() {
+                            map.resize();
+                        }
+
+                        // Resize saat halaman selesai load
+                        window.addEventListener('load', () => setTimeout(resizeMap, 500));
+
+                        // Resize saat layar berubah ukuran
+                        window.addEventListener('resize', () => setTimeout(resizeMap, 200));
+
+                        // Resize saat tab lokasi diklik
+                        const tabLokasi = document.getElementById('tab-lokasi');
+                        if (tabLokasi) {
+                            tabLokasi.addEventListener('click', () => {
+                                setTimeout(resizeMap, 300);
+                            });
+                        }
+                    }
+
+                    // Auto-hide pesan sukses (flash message)
+                    const msg = document.getElementById('successMessage');
+                    if (msg) {
+                        setTimeout(() => {
+                            msg.classList.add('transition-opacity', 'duration-500');
+                            msg.style.opacity = '0';
+                            setTimeout(() => msg.remove(), 500);
+                        }, 2000);
+                    }
+                });
+
+                // ==== Modal Gambar ====
+                function openImageModal(src) {
+                    document.getElementById('modalImage').src = src;
+                    document.getElementById('imageModal').classList.remove('hidden');
+                }
+                function closeImageModal() {
+                    document.getElementById('imageModal').classList.add('hidden');
+                }
+
+                // ==== Modal Delete ====
+                function openDeleteModal(deleteUrl) {
+                    document.getElementById('deleteForm').action = deleteUrl;
+                    document.getElementById('deleteModal').classList.remove('hidden');
+                }
+                function closeDeleteModal() {
+                    document.getElementById('deleteModal').classList.add('hidden');
+                }
+
+                // ==== Modal Edit ====
+                function openEditModal(id, pesan) {
+                    const modal = document.getElementById('editCommentModal');
+                    const form = document.getElementById('editCommentForm');
+                    const textarea = document.getElementById('editCommentText');
+
+                    let actionUrl = "{{ route('reports.comment.update', ':id') }}";
+                    actionUrl = actionUrl.replace(':id', id);
+
+                    form.action = actionUrl;
+                    textarea.value = pesan;
+
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                }
+                function closeEditModal() {
+                    const modal = document.getElementById('editCommentModal');
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+
+                // ==== Tab Navigasi ====
+                function showTab(tab) {
+                    const buttons = document.querySelectorAll('.tab-button');
+                    const panes = document.querySelectorAll('.tab-pane');
+
+                    buttons.forEach(btn => {
+                        btn.classList.remove('border-blue-600', 'text-blue-600');
+                        btn.classList.add('border-transparent', 'text-gray-600');
+                    });
+
+                    panes.forEach(pane => {
+                        pane.classList.add('hidden', 'opacity-0', 'translate-y-4');
+                        pane.classList.remove('opacity-100', 'translate-y-0');
+                    });
+
+                    const activeBtn = document.getElementById(`tab-${tab}`);
+                    if (activeBtn) {
+                        activeBtn.classList.remove('text-blue-600', 'border-transparent');
+                        activeBtn.classList.add('border-blue-600', 'text-blue-600');
+                    }
+
+                    const activePane = document.querySelector(`.tab-pane[data-tab="${tab}"]`);
+                    if (activePane) {
+                        activePane.classList.remove('hidden');
+                        void activePane.offsetWidth;
+                        activePane.classList.add('opacity-100', 'translate-y-0');
+                        activePane.classList.remove('opacity-0', 'translate-y-4');
+                    }
+                }
+            </script>
+
+            {{-- NProgress --}}
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.js"></script>
+            <script>
+                // ⚙️ Konfigurasi default NProgress
+                NProgress.configure({
+                    showSpinner: false,
+                    trickleSpeed: 200,
+                    minimum: 0.08
+                });
+
+                // 🔹 Klik link internal
+                document.addEventListener("click", function (e) {
+                    const link = e.target.closest("a");
+                    if (link && link.href && link.origin === window.location.origin) {
+                        NProgress.start();
+                        setTimeout(() => NProgress.set(0.9), 150);
+                    }
+                });
+
+                // 🔹 Patch XMLHttpRequest
+                (function (open) {
+                    XMLHttpRequest.prototype.open = function () {
+                        NProgress.start();
+                        this.addEventListener("loadend", function () {
+                            NProgress.set(1.0);
+                            setTimeout(() => NProgress.done(), 300);
+                        });
+                        open.apply(this, arguments);
+                    };
+                })(XMLHttpRequest.prototype.open);
+
+                // 🔹 Patch Fetch API
+                const originalFetch = window.fetch;
+                window.fetch = function () {
+                    NProgress.start();
+                    return originalFetch.apply(this, arguments).finally(() => {
+                        NProgress.set(1.0);
+                        setTimeout(() => NProgress.done(), 300);
+                    });
+                };
+
+                // 🔹 Saat halaman selesai load
+                window.addEventListener("pageshow", () => {
+                    NProgress.set(1.0);
+                    setTimeout(() => NProgress.done(), 300);
+                });
+
+                // 🔹 Submit form
+                document.addEventListener("submit", function (e) {
+                    const form = e.target;
+                    if (form.tagName === "FORM") {
+                        NProgress.start();
+                        setTimeout(() => NProgress.set(0.9), 150);
+                    }
+                }, true);
+            </script>
+        @endsection

@@ -1,0 +1,362 @@
+<!-- Layout Wrapper -->
+<div class="flex min-h-screen bg-gray-100 text-white">
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+        class="bg-white w-72 flex flex-col fixed inset-y-0 left-0 z-50 text-gray-800
+           transform transition-transform duration-300 -translate-x-full lg:translate-x-0">
+
+        <!-- Sidebar Header -->
+        <div class="bg-gradient-to-b from-red-700 to-red-800 text-white flex items-center justify-between px-6"
+            style="padding-top: 16px; padding-bottom: 20px;">
+            <div class="flex items-center gap-3">
+                <img src="{{ asset('images/logo-diy.png') }}" class="h-14 ml-2" />
+                <span class="text-lg font-semibold">E-LAPOR DIY</span>
+            </div>
+        </div>
+
+        <!-- Sidebar Menu -->
+        <nav class="flex-1 overflow-y-auto px-6 py-7 text-[16px] shadow-lg scrollbar-hide flex flex-col justify-between">
+
+            <!-- Bagian Atas: Menu -->
+            <div class="space-y-8">
+                <!-- MAIN -->
+                <div class="space-y-2">
+                    <p class="text-[12px] uppercase text-red-600 font-bold tracking-wide mb-2">Main</p>
+
+                    <a href="{{ route('superadmin.dashboard') }}"
+                        class="flex items-center gap-4 px-4 py-[10px] rounded-lg transition font-medium
+                        {{ request()->routeIs('superadmin.dashboard')
+                            ? 'bg-gradient-to-b from-red-700 to-red-800 text-white'
+                            : 'hover:bg-red-100 hover:text-red-700 text-gray-800' }}">
+                        <i
+                            class="fas fa-chart-bar text-[17px] w-5 {{ request()->routeIs('superadmin.dashboard') ? 'text-white' : 'text-gray-500 group-hover:text-red-700' }}"></i>
+                        <span>Dashboard</span>
+                    </a>
+
+                    <a href="{{ route('superadmin.laporan.index') }}"
+                        class="flex items-center gap-4 px-4 py-[10px] rounded-lg transition font-medium
+    {{ request()->routeIs('superadmin.laporan.index')
+        ? 'bg-gradient-to-b from-red-700 to-red-800 text-white'
+        : 'hover:bg-red-100 hover:text-red-700 text-gray-800' }}">
+                        <i
+                            class="fas fa-file-alt text-[17px] w-5 {{ request()->routeIs('superadmin.laporan.index') ? 'text-white' : 'text-gray-500 group-hover:text-red-700' }}"></i>
+                        <span>Laporan Aduan</span>
+                    </a>
+
+                    <a href="{{ route('superadmin.kelola-aduan.index') }}"
+                        class="flex items-center justify-between px-4 py-[10px] rounded-lg transition font-medium
+                        {{ request()->routeIs('superadmin.kelola-aduan.*')
+                            ? 'bg-gradient-to-b from-red-700 to-red-800 text-white'
+                            : 'hover:bg-red-100 hover:text-red-700 text-gray-800' }}">
+                        <div class="flex items-center gap-4">
+                            <i
+                                class="fas fa-comments text-[17px] w-5 {{ request()->routeIs('superadmin.kelola-aduan.*') ? 'text-white' : 'text-gray-500 group-hover:text-red-700' }}"></i>
+                            <span>Approval Aduan</span>
+                        </div>
+
+                        @if (isset($newReportsCount) && $newReportsCount > 0)
+                            <span
+                                class="ml-auto bg-red-600 text-white text-xs font-semibold px-2 py-0.5 rounded-full shadow-sm">
+                                {{ $newReportsCount }}
+                            </span>
+                        @endif
+                    </a>
+                </div>
+
+                <!-- ADMIN -->
+                <div class="space-y-2">
+                    <p class="text-[12px] uppercase text-red-600 font-bold tracking-wide mb-2">Superadmin</p>
+
+                    @php
+                        $menus = [
+                            [
+                                'route' => 'superadmin.kelola-user.*',
+                                'icon' => 'fa-users-cog',
+                                'label' => 'Kelola User',
+                                'url' => route('superadmin.kelola-user.index'),
+                            ],
+                            [
+                                'route' => 'superadmin.kelola-kategori.*',
+                                'icon' => 'fa-tags',
+                                'label' => 'Kelola Kategori',
+                                'url' => route('superadmin.kelola-kategori.index'),
+                            ],
+                            [
+                                'route' => 'superadmin.kelola-wilayah.*',
+                                'icon' => 'fa-map-marker-alt',
+                                'label' => 'Kelola Wilayah',
+                                'url' => route('superadmin.kelola-wilayah.index'),
+                            ],
+                            [
+                                'route' => 'superadmin.kategori-admin.*',
+                                'icon' => 'fa-user-shield',
+                                'label' => 'Kategori Admin',
+                                'url' => route('superadmin.kategori-admin.index'),
+                            ],
+                            [
+                                'route' => 'superadmin.peta.*',
+                                'icon' => 'fa-map',
+                                'label' => 'Peta Aduan',
+                                'url' => route('superadmin.peta.index'),
+                            ],
+                            [
+                                'route' => 'superadmin.activity-logs.index',
+                                'icon' => 'fa-history',
+                                'label' => 'Log Aktivitas',
+                                'url' => route('superadmin.activity-logs.index'),
+                            ],
+                        ];
+                    @endphp
+
+                    @foreach ($menus as $menu)
+                        <a href="{{ $menu['url'] }}"
+                            class="flex items-center justify-between px-4 py-[10px] rounded-lg transition font-medium
+                            {{ request()->routeIs($menu['route'])
+                                ? 'bg-gradient-to-b from-red-700 to-red-800 text-white'
+                                : 'hover:bg-red-100 hover:text-red-700 text-gray-800' }}">
+                            <div class="flex items-center gap-4">
+                                <i
+                                    class="fas {{ $menu['icon'] }} text-[17px] w-5 
+                                    {{ request()->routeIs($menu['route']) ? 'text-white' : 'text-gray-500 group-hover:text-red-700' }}"></i>
+                                <span>{{ $menu['label'] }}</span>
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Bagian Bawah: Logout -->
+            <div class="border-t border-gray-200 mt-6 pt-4">
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit"
+                        class="w-full flex items-center gap-3 px-4 py-[10px] rounded-2xl font-medium 
+            bg-gradient-to-b from-red-700 to-red-800 text-white shadow-md
+            hover:from-red-800 hover:to-red-900 hover:shadow-lg transition-all duration-300">
+                        <i class="fas fa-sign-out-alt text-[16px] w-5 text-white"></i>
+                        <span>Logout</span>
+                    </button>
+                </form>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="flex-1 lg:ml-72 w-full transition-all duration-300">
+
+        <!-- Navbar Desktop -->
+        <nav
+            class="bg-gradient-to-b from-red-700 to-red-800 py-4 px-6 flex items-center sticky top-0 z-40 hidden lg:flex">
+
+            <!-- Kiri: Toggle Sidebar + Search -->
+            <div class="flex items-center gap-4 w-full">
+                <!-- Toggle Sidebar -->
+                <button id="toggleSidebar"
+                    class="lg:invisible bg-gradient-to-b from-red-700 to-red-800 text-white text-xl p-2 rounded-md shadow-md focus:outline-none">
+                    <i class="fas fa-bars"></i>
+                </button>
+
+                <!-- Profile -->
+                <div class="flex items-center ml-auto gap-3">
+                    @auth
+                        <!-- Notification Link -->
+                        <a href="{{ route('notifications.index') }}"
+                            class="relative p-2 text-white hover:text-red-200 transition">
+                            <i class="fas fa-bell text-xl"></i>
+                            @if (auth()->user()->unreadNotifications->count() > 0)
+                                <span
+                                    class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full border border-white transform translate-x-1/4 -translate-y-1/4">
+                                    {{ auth()->user()->unreadNotifications->count() }}
+                                </span>
+                            @endif
+                        </a>
+
+                        <!-- Profile placeholder to fix syntax -->
+
+
+                        <x-dropdown align="right" width="56">
+                            <x-slot name="trigger">
+                                <button
+                                    class="flex items-center bg-white px-4 py-1 text-sm rounded-md border border-white shadow hover:bg-red-100 transition-all space-x-3">
+
+                                    <!-- Nama + NIK -->
+                                    <div class="text-red-700 text-sm font-medium whitespace-nowrap">
+                                        {{ Auth::user()->name }} <span class="mx-1 text-red-700">|</span>
+                                        {{ Auth::user()->nik }}
+                                    </div>
+
+                                    <!-- Avatar -->
+                                    @if (Auth::user()->foto)
+                                        <img src="{{ asset(Auth::user()->foto) }}" alt="Avatar"
+                                            class="h-8 w-8 object-cover rounded-full border-2 border-white shadow" />
+                                    @else
+                                        <img src="{{ asset('images/avatar.jpg') }}" alt="Avatar"
+                                            class="h-8 w-8 object-cover rounded-full border-2 border-white shadow" />
+                                    @endif
+
+                                    <!-- Chevron -->
+                                    <i class="fas fa-chevron-down text-xs text-red-700 mr-3"></i>
+                                </button>
+                            </x-slot>
+
+                            <x-slot name="content">
+                                <!-- Header Profil -->
+                                <div class="px-4 pt-3 pb-2 text-sm text-gray-700">
+                                    <div class="flex flex-col items-center text-center">
+                                        @if (Auth::user()->foto)
+                                            <img src="{{ asset(Auth::user()->foto) }}" alt="Avatar"
+                                                class="h-14 w-14 rounded-full object-cover border border-gray-300 mb-2 bg-white" />
+                                        @else
+                                            <img src="{{ asset('images/avatar.jpg') }}" alt="Avatar"
+                                                class="h-14 w-14 rounded-full object-cover border border-gray-300 mb-2 bg-white" />
+                                        @endif
+
+                                        <div class="text-red-700 font-semibold">{{ Auth::user()->name }}</div>
+                                        <div class="text-red-700 text-xs capitalize">{{ Auth::user()->nik }}</div>
+                                    </div>
+                                </div>
+
+                                <!-- Divider -->
+                                <div class="border-t border-gray-100 my-1"></div>
+
+                                <!-- Menu Profil -->
+                                <a href="{{ route('superadmin.profile.edit') }}"
+                                    class="flex items-center gap-3 px-4 py-[10px] rounded-lg transition font-medium
+                                                                                                                                                {{ request()->routeIs('superadmin.profile.edit')
+                                                                                                                                                    ? 'bg-gradient-to-b from-red-700 to-red-800 text-white'
+                                                                                                                                                    : 'text-gray-800 hover:bg-red-100 hover:text-red-700' }}">
+                                    <i
+                                        class="fas fa-user text-[16px] w-5 
+                                                                                                                                                {{ request()->routeIs('superadmin.profile.edit') ? 'text-white' : 'text-gray-500 group-hover:text-red-700' }}"></i>
+                                    <span>Profil</span>
+                                </a>
+                            </x-slot>
+                        </x-dropdown>
+                    @endauth
+                </div>
+        </nav>
+
+        <!-- Navbar Mobile -->
+        <nav
+            class="bg-gradient-to-b from-red-700 to-red-800 py-4 px-6 flex items-center justify-between sticky top-0 z-50 lg:hidden">
+
+            <!-- Kiri: Logo + Toggle -->
+            <div class="flex items-center gap-3">
+                <!-- Logo -->
+                <img src="{{ asset('images/logo-diy.png') }}" class="h-14" />
+                <span class="text-lg font-semibold text-white">E-LAPOR DIY</span>
+
+                <!-- Toggle Sidebar -->
+                <button id="toggleSidebarMobile"
+                    class="text-white text-xl p-2 ml-3 rounded-md shadow-md focus:outline-none bg-white/20 hover:bg-red-200/30">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+
+            <!-- Kanan: Foto Profil + Dropdown -->
+            @auth
+                <x-dropdown align="right" width="48">
+                    <x-slot name="trigger">
+                        <button
+                            class="flex items-center bg-white/20 px-1 py-1 text-sm rounded-full border border-white/50 hover:bg-red-200/30 transition-all space-x-3 shadow-sm backdrop-blur-md">
+                            @if (Auth::user()->foto)
+                                <img src="{{ asset(Auth::user()->foto) }}" alt="User Avatar"
+                                    class="h-11 w-11 rounded-full object-cover border-2 border-white shadow-sm" />
+                            @else
+                                <img src="{{ asset('images/avatar.jpg') }}" alt="Default Avatar"
+                                    class="h-11 w-11 rounded-full object-cover border-2 border-white shadow-sm" />
+                            @endif
+                        </button>
+                    </x-slot>
+
+                    <x-slot name="content">
+                        <!-- Header Profil -->
+                        <div class="px-4 pt-3 pb-2 text-sm text-gray-700">
+                            <div class="flex flex-col items-center text-center">
+                                @if (Auth::user()->foto)
+                                    <img src="{{ asset(Auth::user()->foto) }}" alt="Avatar"
+                                        class="h-14 w-14 rounded-full object-cover border border-gray-300 mb-2 bg-white" />
+                                @else
+                                    <img src="{{ asset('images/avatar.jpg') }}" alt="Avatar"
+                                        class="h-14 w-14 rounded-full object-cover border border-gray-300 mb-2 bg-white" />
+                                @endif
+
+                                <div class="text-red-600 font-semibold">{{ Auth::user()->name }}</div>
+                                <div class="text-red-600 text-xs capitalize">{{ Auth::user()->nik }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="border-t border-gray-100 my-1"></div>
+
+                        <!-- Menu Profil -->
+                        <a href="{{ route('superadmin.profile.edit') }}"
+                            class="flex items-center gap-3 px-4 py-[10px] rounded-lg transition font-medium
+                                                                            {{ request()->routeIs('superadmin.profile.edit')
+                                                                                ? 'bg-gradient-to-b from-red-700 to-red-800 text-white'
+                                                                                : 'text-gray-800 hover:bg-red-100 hover:text-red-600' }}">
+                            <i
+                                class="fas fa-user text-[16px] w-5
+                                                                            {{ request()->routeIs('superadmin.profile.edit') ? 'text-white' : 'text-gray-500 group-hover:text-red-600' }}"></i>
+                            <span>Profil</span>
+                        </a>
+                    </x-slot>
+                </x-dropdown>
+            @endauth
+
+        </nav>
+
+        <!-- Page Content -->
+        <main class="p-6 bg-gray-50 min-h-screen text-gray-900">
+            @yield('content')
+        </main>
+    </div>
+</div>
+
+<!-- Toggle Script -->
+<script>
+    const toggleSidebar = document.getElementById('toggleSidebar');
+    const toggleSidebarMobile = document.getElementById('toggleSidebarMobile');
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+
+    function openSidebar() {
+        sidebar.classList.remove('-translate-x-full');
+        mainContent.classList.add('lg:ml-72');
+    }
+
+    function closeSidebar() {
+        sidebar.classList.add('-translate-x-full');
+        mainContent.classList.remove('lg:ml-72');
+    }
+
+    function toggleSidebarAction() {
+        if (sidebar.classList.contains('-translate-x-full')) {
+            openSidebar();
+        } else {
+            closeSidebar();
+        }
+    }
+
+    toggleSidebar?.addEventListener('click', toggleSidebarAction);
+    toggleSidebarMobile?.addEventListener('click', toggleSidebarAction);
+
+    // Atur default saat load
+    window.addEventListener('DOMContentLoaded', () => {
+        if (window.innerWidth >= 1024) {
+            sidebar.classList.remove('-translate-x-full');
+            mainContent.classList.add('lg:ml-72');
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        if (window.innerWidth >= 1024) {
+            sidebar.classList.remove('-translate-x-full');
+            mainContent.classList.add('lg:ml-72');
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            mainContent.classList.remove('lg:ml-72');
+        }
+    });
+</script>
