@@ -490,7 +490,7 @@
                                                 <div class="flex flex-wrap gap-4 mt-2">
                                                     @foreach ($report->file as $file)
                                                         @php
-                                                            $filePath = asset($file);
+                                                            $filePath = asset(ltrim($file, '/'));
                                                             $extension = strtolower(
                                                                 pathinfo($file, PATHINFO_EXTENSION),
                                                             );

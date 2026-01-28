@@ -304,14 +304,11 @@
 
                             if (!empty($item->file)) {
                                 $files = is_array($item->file) ? $item->file : json_decode($item->file, true);
-                                if (is_array($files)) {
-                                    foreach ($files as $f) {
-                                        $ext = strtolower(pathinfo($f, PATHINFO_EXTENSION));
-                                        if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
-                                            $thumbnail = asset($f);
-                                            break;
-                                        }
-                                    }
+                                if (is_array($files) && count($files) > 0) {
+                                    $firstFile = $files[0];
+                                    // Hilangkan slash di depan jika ada agar tidak double dikombinasikan dengan asset()
+                                    $trimmedPath = ltrim($firstFile, '/');
+                                    $thumbnail = asset($trimmedPath);
                                 }
                             }
                         @endphp
@@ -494,14 +491,10 @@
 
                                 if (!empty($item->file)) {
                                     $files = is_array($item->file) ? $item->file : json_decode($item->file, true);
-                                    if (is_array($files)) {
-                                        foreach ($files as $f) {
-                                            $ext = strtolower(pathinfo($f, PATHINFO_EXTENSION));
-                                            if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
-                                                $thumbnail = asset($f);
-                                                break;
-                                            }
-                                        }
+                                    if (is_array($files) && count($files) > 0) {
+                                        $firstFile = $files[0];
+                                        $trimmedPath = ltrim($firstFile, '/');
+                                        $thumbnail = asset($trimmedPath);
                                     }
                                 }
                             @endphp

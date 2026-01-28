@@ -133,7 +133,7 @@
                                     foreach ($files as $f) {
                                         $ext = strtolower(pathinfo($f, PATHINFO_EXTENSION));
                                         if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
-                                            $thumbnail = asset($f);
+                                            $thumbnail = asset(ltrim($f, '/'));
                                             break;
                                         }
                                     }
@@ -271,7 +271,7 @@
                                         foreach ($files as $f) {
                                             $ext = strtolower(pathinfo($f, PATHINFO_EXTENSION));
                                             if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
-                                                $thumbnail = asset($f);
+                                                $thumbnail = asset(ltrim($f, '/'));
                                                 break;
                                             }
                                         }

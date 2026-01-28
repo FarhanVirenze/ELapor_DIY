@@ -169,7 +169,7 @@
                             {{ Auth::user()->nik }}
                         </div>
                         <img src="{{ Auth::user()->foto
-                            ? asset(Auth::user()->foto)
+                            ? asset(ltrim(Auth::user()->foto, '/'))
                             : (Auth::user()->avatar
                                 ? Auth::user()->avatar
                                 : asset('images/avatar.jpg')) }}"
@@ -341,7 +341,7 @@
                                                                                                                                                                                                                                                            hover:bg-red-100 hover:text-red-600"
                             :class="{ 'bg-red-50 text-red-700 shadow-sm': open }">
                             <img src="{{ Auth::user()->foto
-                                ? asset(Auth::user()->foto)
+                                ? asset(ltrim(Auth::user()->foto, '/'))
                                 : (Auth::user()->avatar
                                     ? Auth::user()->avatar
                                     : asset('images/avatar.jpg')) }}"

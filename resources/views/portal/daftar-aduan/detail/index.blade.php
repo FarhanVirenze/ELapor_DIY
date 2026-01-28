@@ -312,7 +312,8 @@
                                         $ext = strtolower(pathinfo($f, PATHINFO_EXTENSION));
 
                                         if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
-                                            $thumbnail = asset($f); // langsung dari public/report_files
+                                            $trimmedPath = ltrim($f, '/');
+                                            $thumbnail = asset($trimmedPath); // langsung dari public/report_files
                                             break;
                                         }
                                     }
@@ -519,7 +520,7 @@
                                                     class="h-8 w-8 rounded-full object-cover bg-white shadow" />
                                             @else
                                                                                 <img src="{{ $report->pelapor && $report->pelapor->foto
-                                                ? asset($report->pelapor->foto)
+                                                ? asset(ltrim($report->pelapor->foto, '/'))
                                                 : ($report->pelapor && $report->pelapor->avatar
                                                     ? $report->pelapor->avatar
                                                     : asset('images/avatar.jpg')) }}" alt="Avatar {{ $report->pelapor->name ?? 'User' }}"
@@ -747,7 +748,8 @@
                                                 {{-- Lampiran --}}
                                                 @if ($item->file)
                                                     @php
-                                                        $filePath = asset($item->file); // langsung dari public/report_files atau folder publik
+                                                        $trimmedFilePath = ltrim($item->file, '/');
+                                                        $filePath = asset($trimmedFilePath); // langsung dari public/report_files atau folder publik
                                                         $ext = strtolower(pathinfo($item->file, PATHINFO_EXTENSION));
                                                     @endphp
 

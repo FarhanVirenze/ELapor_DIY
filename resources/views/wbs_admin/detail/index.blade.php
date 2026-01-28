@@ -173,7 +173,7 @@
         {{-- Preview gambar pertama --}}
         @if ($firstImage)
             <div class="relative">
-                <img src="{{ asset($firstImage) }}" alt="Lampiran"
+                <img src="{{ asset(ltrim($firstImage, '/')) }}" alt="Lampiran"
                     class="w-full h-52 object-cover rounded-lg shadow-sm">
 
                 {{-- Overlay Nama Pengadu / Anonim --}}
@@ -192,7 +192,7 @@
         <div class="mt-2 flex flex-wrap gap-2">
             @foreach ($lampiran as $file)
                 @if (!preg_match('/\.(jpg|jpeg|png|gif)$/i', $file))
-                    <a href="{{ asset($file) }}" target="_blank"
+                    <a href="{{ asset(ltrim($file, '/')) }}" target="_blank"
                         class="text-blue-600 underline text-sm">
                         {{ basename($file) }}
                     </a>
@@ -319,9 +319,9 @@
 
                                     {{-- Preview Gambar --}}
                                     @if($fu->lampiran)
-                                        <img src="{{ asset($fu->lampiran) }}" alt="Lampiran"
+                                        <img src="{{ asset(ltrim($fu->lampiran, '/')) }}" alt="Lampiran"
                                             class="mt-2 w-32 h-32 object-cover rounded cursor-pointer"
-                                            @click="$dispatch('open-image-modal', {url: '{{ asset($fu->lampiran) }}' })">
+                                            @click="$dispatch('open-image-modal', {url: '{{ asset(ltrim($fu->lampiran, '/')) }}' })">
                                     @endif
 
 
@@ -419,11 +419,11 @@
                                             @endphp
 
                                             @if($isImage)
-                                                <img src="{{ asset($c->file) }}" alt="Lampiran"
+                                                <img src="{{ asset(ltrim($c->file, '/')) }}" alt="Lampiran"
                                                     class="mt-2 w-32 h-32 object-cover rounded cursor-pointer shadow border"
-                                                    @click="$dispatch('open-image-modal', { url: '{{ asset($c->file) }}' })">
+                                                    @click="$dispatch('open-image-modal', { url: '{{ asset(ltrim($c->file, '/')) }}' })">
                                             @else
-                                                <a href="{{ asset($c->file) }}" target="_blank"
+                                                <a href="{{ asset(ltrim($c->file, '/')) }}" target="_blank"
                                                     class="text-xs text-blue-600 hover:underline">
                                                     Lihat File
                                                 </a>
@@ -666,7 +666,7 @@
                         <li class="flex items-center justify-between bg-gray-50 p-2 rounded">
                             {{-- Thumbnail gambar kalau file image --}}
                             @if (preg_match('/\.(jpg|jpeg|png|gif)$/i', $file))
-                                <img src="{{ asset($file) }}"
+                                <img src="{{ asset(ltrim($file, '/')) }}"
                                     class="w-12 h-12 object-cover rounded mr-2">
                             @else
                                 <i class="fas fa-file-alt text-gray-500 mr-2"></i>

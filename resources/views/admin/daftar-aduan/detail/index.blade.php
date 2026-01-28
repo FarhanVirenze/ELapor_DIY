@@ -380,7 +380,7 @@
                                                     <div x-show="!editing">
                                                         <p class="text-slate-700 text-sm">{{ $item->pesan }}</p>
                                                         @if($item->file)
-                                                            <a href="{{ asset($item->file) }}" target="_blank" class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50">
+                                                            <a href="{{ asset(ltrim($item->file, '/')) }}" target="_blank" class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50">
                                                                 <i class="fas fa-paperclip text-slate-400"></i> Lampiran
                                                             </a>
                                                         @endif
@@ -444,7 +444,7 @@
                                                     
                                                     <div x-show="!editing" class="pl-0 md:pl-14">
                                                         <p class="text-slate-600 text-sm leading-relaxed">{{ $item->pesan }}</p>
-                                                        @if($item->file) <a href="{{ asset($item->file) }}" target="_blank" class="mt-3 text-xs font-bold text-red-600 inline-flex items-center gap-2 hover:underline"><i class="fas fa-paperclip"></i> Lihat Media</a> @endif
+                                                        @if($item->file) <a href="{{ asset(ltrim($item->file, '/')) }}" target="_blank" class="mt-3 text-xs font-bold text-red-600 inline-flex items-center gap-2 hover:underline"><i class="fas fa-paperclip"></i> Lihat Media</a> @endif
                                                     </div>
 
                                                     <div x-show="editing" x-cloak class="mt-2 pl-0 md:pl-14">
@@ -526,7 +526,7 @@
                                 @php
                                     $userPhoto = asset('images/avatar.jpg');
                                     if(!$report->is_anonim && $report->pelapor) {
-                                        if($report->pelapor->foto) { $userPhoto = asset($report->pelapor->foto); }
+                                        if($report->pelapor->foto) { $userPhoto = asset(ltrim($report->pelapor->foto, '/')); }
                                         elseif($report->pelapor->avatar) { $userPhoto = $report->pelapor->avatar; }
                                     }
                                 @endphp
